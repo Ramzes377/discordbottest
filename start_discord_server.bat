@@ -1,0 +1,1 @@
+python S:\Programming\Server\MyDiscordBot.py
