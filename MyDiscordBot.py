@@ -1,9 +1,10 @@
 import discord
+import os
 
 
 created_channels = {} # User_Name : Channel
 
-class Client(discord.Client):
+class Bot(discord.Client):
     async def on_ready(self):
         print('Bot have been started!')
         for channel in self.get_all_channels():
@@ -53,5 +54,8 @@ class Client(discord.Client):
                 await member.move_to(created_channels[member_name])
 
 
-client = Client()
-client.run('TOKEN')
+bot = Bot()
+
+token = os.environ.get('TOKEN')
+
+bot.run('TOKEN')
