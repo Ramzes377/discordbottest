@@ -58,4 +58,4 @@ bot = Bot()
 
 token = os.environ.get('TOKEN')
 
-bot.run('TOKEN')
+bot.run(str(token))
