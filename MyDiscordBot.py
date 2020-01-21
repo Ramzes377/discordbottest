@@ -44,6 +44,7 @@ class Bot(discord.Client):
                     await created_channels[new_leader.display_name].edit(name = channel_name)
 
         elif after.channel.name == 'Create channel':
+            category = self.get_channel(after.channel.category_id)
             if member_name not in created_channels:
                 category = self.get_channel(after.channel.category_id)
                 channel_name = self._channel_name_helper(member)
@@ -56,6 +57,6 @@ class Bot(discord.Client):
 
 bot = Bot()
 
-token = 'NjY4OTI5NjI4MDgxMDk0NjY5.XiYbVg.KZOgNEK09KXWnZ8mSVP0RSBSFYQ'#os.environ.get('TOKEN')
+token = os.environ.get('TOKEN')
 
 bot.run(str(token))
