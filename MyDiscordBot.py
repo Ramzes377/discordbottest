@@ -1,5 +1,6 @@
 import discord
 
+
 created_channels = {} # User_Name : Channel
 
 class Client(discord.Client):
@@ -53,4 +54,4 @@ class Client(discord.Client):
 
 
 client = Client()
-client.run('NjY4OTI5NjI4MDgxMDk0NjY5.XiYbVg.KZOgNEK09KXWnZ8mSVP0RSBSFYQ')
+client.run('TOKEN')
