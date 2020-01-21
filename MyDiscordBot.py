@@ -56,6 +56,6 @@ class Bot(discord.Client):
 
 bot = Bot()
 
-token = os.environ.get('TOKEN')
+token = 'NjY4OTI5NjI4MDgxMDk0NjY5.XiYbVg.KZOgNEK09KXWnZ8mSVP0RSBSFYQ'#os.environ.get('TOKEN')
 
 bot.run(str(token))
