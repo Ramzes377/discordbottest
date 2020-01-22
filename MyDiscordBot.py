@@ -3,7 +3,7 @@ import os
 
 
 created_channels = {} # User_Name : Channel
-channel_position = 3
+channel_position = 2
 
 class Bot(discord.Client):
     async def on_ready(self):
@@ -50,8 +50,8 @@ class Bot(discord.Client):
                 channel_name = self._channel_name_helper(member)
                 channel = await member.guild.create_voice_channel(channel_name, category = category, position = channel_position)
                 created_channels[member_name] = channel
-                channel_position += 1
                 await member.move_to(channel)
+                channel_position += 1
             else:
                 await member.move_to(created_channels[member_name])
 
