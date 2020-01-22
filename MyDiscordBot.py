@@ -3,7 +3,6 @@ import os
 
 
 created_channels = {} # User_Name : Channel
-channel_position = 3
 
 class Bot(discord.Client):
     async def on_ready(self):
@@ -36,7 +35,6 @@ class Bot(discord.Client):
             # PLAYER LEAVE FROM CHANNEL
             if member_name in created_channels:
                 if not created_channels[member_name].members:
-                    channel_position -= 1
                     await created_channels.pop(member_name).delete( )
                 else:
                     channel = created_channels.pop(member_name)
@@ -48,9 +46,8 @@ class Bot(discord.Client):
             if member_name not in created_channels:
                 category = self.get_channel(after.channel.category_id)
                 channel_name = self._channel_name_helper(member)
-                channel = await member.guild.create_voice_channel(channel_name, category = category, position = channel_position)
+                channel = await member.guild.create_voice_channel(channel_name, category = category, position = 3)
                 created_channels[member_name] = channel
-                channel_position += 1
                 await member.move_to(channel)
             else:
                 await member.move_to(created_channels[member_name])
