@@ -38,13 +38,11 @@ class Bot(discord.Client):
                     await created_channels.pop(member_name).delete( )
                 else:
                     channel = created_channels.pop(member_name)
-                    new_leader = channel.members[0]
+                    new_leader = channel.members[-1]
                     created_channels[new_leader.display_name] = channel
-                    channel_name = self._channel_name_helper(new_leader)
-                    await created_channels[new_leader.display_name].edit(name = channel_name)
+                    await created_channels[new_leader.display_name].edit(name = self._channel_name_helper(new_leader))
 
         elif after.channel.name == 'Create channel':
-            category = self.get_channel(after.channel.category_id)
             if member_name not in created_channels:
                 category = self.get_channel(after.channel.category_id)
                 channel_name = self._channel_name_helper(member)
@@ -54,9 +52,6 @@ class Bot(discord.Client):
             else:
                 await member.move_to(created_channels[member_name])
 
-
 bot = Bot()
-
 token = os.environ.get('TOKEN')
-
 bot.run(str(token))
