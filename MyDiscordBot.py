@@ -41,7 +41,7 @@ class Bot(discord.Client):
                     new_leader = channel.members[0]
                     created_channels[new_leader.display_name] = channel
                     channel_name = self._channel_name_helper(new_leader)
-                    await created_channels[new_leader.display_name].edit(name = channel_name)
+                    await created_channels[new_leader.display_name].edit(name = channel_name, position = 1)
 
         elif after.channel.name == 'Create channel':
             category = self.get_channel(after.channel.category_id)
