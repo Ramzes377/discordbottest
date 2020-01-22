@@ -46,7 +46,7 @@ class Bot(discord.Client):
             if member_name not in created_channels:
                 category = self.get_channel(after.channel.category_id)
                 channel_name = self._channel_name_helper(member)
-                channel = await member.guild.create_voice_channel(channel_name, category = category, position = 3)
+                channel = await member.guild.create_voice_channel(channel_name, category = category, position = -1)
                 created_channels[member_name] = channel
                 await member.move_to(channel)
             else:
