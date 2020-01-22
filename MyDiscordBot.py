@@ -36,8 +36,8 @@ class Bot(discord.Client):
             # PLAYER LEAVE FROM CHANNEL
             if member_name in created_channels:
                 if not created_channels[member_name].members:
-                    await created_channels.pop(member_name).delete( )
                     channel_position -= 1
+                    await created_channels.pop(member_name).delete( )
                 else:
                     channel = created_channels.pop(member_name)
                     new_leader = channel.members[-1]
