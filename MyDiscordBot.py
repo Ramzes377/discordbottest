@@ -41,14 +41,14 @@ class Bot(discord.Client):
                     new_leader = channel.members[0]
                     created_channels[new_leader.display_name] = channel
                     channel_name = self._channel_name_helper(new_leader)
-                    await created_channels[new_leader.display_name].edit(name = channel_name, position = 1)
+                    await created_channels[new_leader.display_name].edit(name = channel_name)
 
         elif after.channel.name == 'Create channel':
             category = self.get_channel(after.channel.category_id)
             if member_name not in created_channels:
                 category = self.get_channel(after.channel.category_id)
                 channel_name = self._channel_name_helper(member)
-                channel = await member.guild.create_voice_channel(channel_name, category = category)
+                channel = await member.guild.create_voice_channel(channel_name, category = category, position = 2)
                 created_channels[member_name] = channel
                 await member.move_to(channel)
             else:
