@@ -7,12 +7,13 @@ created_categories = {discord.ActivityType.playing: 531556241663721492,
                       4: 531504241500749835,
                       0: 531504241500749835}
 
+create_channel_id = 668969213368729660
+
 class Bot(discord.Client):
     async def on_ready(self):
-
         for cat in created_categories:
             created_categories[cat] = self.get_channel(created_categories[cat]) #getting categories from their IDs
-
+        self.create_channel = self.get_channel(create_channel_id)
         print('Bot have been started!')
 
         for channel in self.get_all_channels():
@@ -41,7 +42,7 @@ class Bot(discord.Client):
 
     async def on_voice_state_update(self, member, before, after):
         member_name = member.display_name
-        if not after.channel or after.channel.name != 'Create channel':
+        if not after.channel or after.channel.name != self.create_channel:
             # Client LEAVE FROM CHANNEL
             if member_name in created_channels:
                 if not created_channels[member_name].members:
@@ -54,7 +55,7 @@ class Bot(discord.Client):
                     created_channels[new_leader.display_name] = channel
                     await created_channels[new_leader.display_name].edit(name = self._channel_name_helper(new_leader))
 
-        elif after.channel.name == 'Create channel':
+        elif after.channel == self.create_channel:
             #Creating new channel
             if member_name not in created_channels: #if not created already
                 category = created_categories.get(member.activity.type if member.activity else 0)
