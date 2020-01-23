@@ -6,7 +6,7 @@ created_channels = {} # User_Name : Channel
 created_categories = {discord.ActivityType.playing: 531556241663721492, 
                       discord.ActivityType.custom: 531504241500749835, 
                       discord.ActivityType.streaming: 669927306562895900,
-                      0: 531504241500749835, }
+                      0: 531504241500749835}
 
 class Bot(discord.Client):
     async def on_ready(self):
