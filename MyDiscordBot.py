@@ -1,11 +1,10 @@
 import discord
 import os
 
-
 created_channels = {} # User_Name : Channel
-created_categories = {discord.ActivityType.playing: 531556241663721492, 
-                      discord.ActivityType.custom: 531504241500749835, 
+created_categories = {discord.ActivityType.playing: 531556241663721492,
                       discord.ActivityType.streaming: 669927306562895900,
+                      4: 531504241500749835,
                       0: 531504241500749835}
 
 class Bot(discord.Client):
@@ -29,6 +28,8 @@ class Bot(discord.Client):
                 return f"|Dota| {member.display_name}'s channel"
             elif activity_name.lower().replace(' ', '')[:9] == 'minecraft':
                 return f"|Minecraft| {member.display_name}'s channel"
+            elif activity_name == 'Custom Status':
+                return f"|{member.activity.state}| {member.display_name}'s channel"
             else:
                 return f"|{member.activity.name}| {member.display_name}'s channel"
         return f"|{member.display_name}'s channel"
@@ -49,7 +50,7 @@ class Bot(discord.Client):
                 else:
                     # Client's channel isn't empty
                     channel = created_channels.pop(member_name)
-                    new_leader = channel.members[-1] #New leader of these channel
+                    new_leader = channel.members[0] #New leader of these channel
                     created_channels[new_leader.display_name] = channel
                     await created_channels[new_leader.display_name].edit(name = self._channel_name_helper(new_leader))
 
