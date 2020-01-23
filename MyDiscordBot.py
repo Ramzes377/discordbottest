@@ -42,7 +42,7 @@ class Bot(discord.Client):
 
     async def on_voice_state_update(self, member, before, after):
         member_name = member.display_name
-        if not after.channel or after.channel.name != self.create_channel:
+        if not after.channel or after.channel != self.create_channel:
             # Client LEAVE FROM CHANNEL
             if member_name in created_channels:
                 if not created_channels[member_name].members:
