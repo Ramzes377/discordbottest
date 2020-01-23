@@ -77,3 +77,7 @@ class Bot(discord.Client):
             if message.content.startswith('!'):
                 if message.content[1:] == 'time':
                     await channel.send('Hey!')
+
+bot = Bot()
+token = os.environ.get('TOKEN')
+bot.run(str(token))
