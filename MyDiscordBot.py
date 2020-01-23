@@ -10,6 +10,7 @@ created_categories = {discord.ActivityType.playing: 531556241663721492,
 create_channel_id = 668969213368729660
 
 class Bot(discord.Client):
+
     async def on_ready(self):
         for cat in created_categories:
             created_categories[cat] = self.get_channel(created_categories[cat]) #getting categories from their IDs
@@ -60,12 +61,19 @@ class Bot(discord.Client):
             if member_name not in created_channels: #if not created already
                 category = created_categories.get(member.activity.type if member.activity else 0)
                 channel_name = self._channel_name_helper(member)
-                channel = await member.guild.create_voice_channel(channel_name, category = category)
+                overwrites = {
+                    member.guild.default_role: discord.PermissionOverwrite(connect = True, speak = True, use_voice_activation = True),
+                    member: discord.PermissionOverwrite(kick_members = True, mute_members = True, deafen_members = True, manage_channels = True)
+                }
+                channel = await member.guild.create_voice_channel(channel_name, category = category, overwrites = overwrites)
                 created_channels[member_name] = channel
                 await member.move_to(channel)
             else: #if created then just back client to himself channel
                 await member.move_to(created_channels[member_name])
 
-bot = Bot()
-token = os.environ.get('TOKEN')
-bot.run(str(token))
+    async def on_message(self, message):  #PROTOTYPE
+        channel = message.channel
+        if message.author != self.user:
+            if message.content.startswith('!'):
+                if message.content[1:] == 'time':
+                    await channel.send('Hey!')
