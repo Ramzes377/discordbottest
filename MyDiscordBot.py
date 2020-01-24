@@ -43,16 +43,6 @@ def _channel_name_helper(member): #describe few activities to correct show
             return f"|{member.activity.name}| {member.display_name}'s channel"
     return f"|{member.display_name}'s channel"
 
-def _add_to_queue(url):
-    global ydl_opts
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        print("Downloading audio now\n")
-        ydl.download([url])
-
-    for file in os.listdir("./"):
-        if file.endswith(".mp3") or file.endswith(".webm"):
-            if not file in song_queue:
-                song_queue.append(file)
 
 @bot.event
 async def on_ready():
@@ -65,7 +55,7 @@ async def on_ready():
 
     for channel in bot.get_all_channels( ):
         if channel.name[0] == '|':
-             await channel.delete( )
+            await channel.delete( )
 
 @bot.event
 async def on_voice_state_update(member, before, after):
