@@ -1,4 +1,2 @@
 discord.py
 youtube_dl
-shutil
-os
