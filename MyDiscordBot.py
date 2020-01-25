@@ -2,8 +2,18 @@ import discord
 import os
 import youtube_dl
 from discord.ext import commands
+from discord.ext.tasks import loop
 from discord.utils import get
 import shutil
+import numpy as np
+
+lerp = lambda s, e, a: np.array((1 - a) * s + a * e, dtype = np.int).tolist()
+start = np.array((158,69,255))
+end = np.array((255,157,0))
+steps = 20
+gradient = [discord.Colour(1).from_rgb(*lerp(start, end, x/steps)) for x in range(steps)]
+gradient = gradient + list(reversed(gradient))
+i = 0
 
 ydl_opts = {'format': 'bestaudio/best',
             'postprocessors': [{'key': 'FFmpegExtractAudio',
@@ -27,6 +37,7 @@ create_channel_id = 668969213368729660
 
 bot = commands.Bot(command_prefix = '!')
 
+colours = [discord.Colour(0xe91e63), discord.Colour(0x0000FF0), discord.Colour(0x00FF00), discord.Colour(0xFF0000)]
 
 def _channel_name_helper(member): #describe few activities to correct show
     if member.activity:
@@ -50,37 +61,52 @@ async def on_ready():
         created_categories[cat] = bot.get_channel(created_categories[cat])  # getting categories from their IDs
 
     bot.create_channel = bot.get_channel(create_channel_id)
-
+    bot.created_roles = {role.name: role for guild in bot.guilds for member in guild.members for role in member.roles}
+    await bot.created_roles['Admin'].edit(colour = choice(colours))
     print('Bot have been started!')
 
     for channel in bot.get_all_channels( ):
         if channel.name[0] == '|':
             await channel.delete( )
+    colour_change.start()
+
+@bot.event
+async def on_member_update(before, after):
+    if after.display_name in created_channels:
+        category = created_categories.get(after.activity.type if after.activity else 0)
+        await created_channels[after.display_name].edit(name = _channel_name_helper(after), category = category)
+
+    if after.activity and after.activity.type == discord.ActivityType.playing:
+        role_name = after.activity.name + ' players'
+        if all(role_name != role.name for role in after.roles):
+            if not bot.created_roles.get(role_name):
+                guild = after.guild
+                role = await guild.create_role(name = role_name, permissions = bot.created_roles['@everyone'].permissions)
+                bot.created_roles[role_name] = role
+                await after.add_roles(role)
+            else:
+                await after.add_roles(bot.created_roles[role_name])
 
 @bot.event
 async def on_voice_state_update(member, before, after):
     member_name = member.display_name
-    if not after.channel or after.channel != bot.create_channel:
-        # Client LEAVE FROM CHANNEL
+    if not after.channel or after.channel != bot.create_channel: # Client LEAVE FROM CHANNEL
         if member_name in created_channels:
-            if not created_channels[member_name].members:
-                #Client's channel is empty
+            if not created_channels[member_name].members: #Client's channel is empty
                 await created_channels.pop(member_name).delete( )
-            else:
-                # Client's channel isn't empty
+            else: # Client's channel isn't empty
                 channel = created_channels.pop(member_name)
                 new_leader = channel.members[0] #New leader of these channel
                 created_channels[new_leader.display_name] = channel
                 await created_channels[new_leader.display_name].edit(name = _channel_name_helper(new_leader))
 
-    elif after.channel == bot.create_channel:
-        #Creating new channel
+    elif after.channel == bot.create_channel: #Creating new channel
         if member_name not in created_channels: #if not created already
             category = created_categories.get(member.activity.type if member.activity else 0)
             channel_name = _channel_name_helper(member)
             overwrites = {
                 member.guild.default_role: discord.PermissionOverwrite(connect = True, speak = True, use_voice_activation = True),
-                member: discord.PermissionOverwrite(kick_members = True, mute_members = True, deafen_members = True, manage_channels = True)
+                member: discord.PermissionOverwrite(kick_members = True, mute_members = True, deafen_members = True, manage_channels = True, create_instant_invite = True)
             }
             channel = await member.guild.create_voice_channel(channel_name, category = category, overwrites = overwrites)
             created_channels[member_name] = channel
@@ -319,6 +345,14 @@ async def volume(ctx, volume: int):
 
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
+
+@loop(seconds = .025)
+async def colour_change():
+    global i
+    await bot.created_roles['Admin'].edit(colour = gradient[i])
+    i += 1
+    if i == len(gradient):
+        i = 0
     
    
 token = os.environ.get('TOKEN')
