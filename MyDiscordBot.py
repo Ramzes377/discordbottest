@@ -355,3 +355,6 @@ async def colour_change():
     i += 1
     if i == len(gradient):
         i = 0
+
+token = os.environ.get('TOKEN')
+bot.run(str(token))
