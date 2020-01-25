@@ -77,7 +77,7 @@ async def on_member_update(before, after):
         await created_channels[after.display_name].edit(name = _channel_name_helper(after), category = category)
 
     if after.activity and after.activity.type == discord.ActivityType.playing:
-        role_name = after.activity.name + ' players'
+        role_name = after.activity.name + ' player'
         if all(role_name != role.name for role in after.roles):
             if not bot.created_roles.get(role_name):
                 guild = after.guild
