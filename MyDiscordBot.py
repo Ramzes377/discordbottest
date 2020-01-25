@@ -6,6 +6,7 @@ from discord.ext.tasks import loop
 from discord.utils import get
 import shutil
 import numpy as np
+from random import randint as r
 
 lerp = lambda s, e, a: np.array((1 - a) * s + a * e, dtype = np.int).tolist()
 start = np.array((158,69,255))
@@ -81,7 +82,7 @@ async def on_member_update(before, after):
         if all(role_name != role.name for role in after.roles):
             if not bot.created_roles.get(role_name):
                 guild = after.guild
-                role = await guild.create_role(name = role_name, permissions = bot.created_roles['@everyone'].permissions)
+                role = await guild.create_role(name = role_name, permissions = bot.created_roles['@everyone'].permissions, colour = discord.Colour(1).from_rgb(r(0, 255), r(0, 255), r(0, 255)))
                 bot.created_roles[role_name] = role
                 await after.add_roles(role)
             else:
@@ -346,7 +347,7 @@ async def volume(ctx, volume: int):
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
 
-@loop(seconds = .025)
+@loop(seconds = .05)
 async def colour_change():
     global i
     await bot.created_roles['Admin'].edit(colour = gradient[i])
