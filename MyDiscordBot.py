@@ -81,7 +81,10 @@ async def on_member_update(before, after):
         if all(role_name != role.name for role in after.roles):
             if not bot.created_roles.get(role_name):
                 guild = after.guild
-                role = await guild.create_role(name = role_name, permissions = bot.created_roles['@everyone'].permissions, colour = discord.Colour(1).from_rgb(r(0, 255), r(0, 255), r(0, 255)))
+                role = await guild.create_role(name = role_name,
+                                               permissions = bot.created_roles['@everyone'].permissions,
+                                               colour = discord.Colour(1).from_rgb(r(0, 255), r(0, 255), r(0, 255)),
+                                               hoist = True)
                 bot.created_roles[role_name] = role
                 await after.add_roles(role)
             else:
