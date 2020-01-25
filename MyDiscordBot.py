@@ -64,7 +64,6 @@ async def on_ready():
     bot.create_channel = bot.get_channel(create_channel_id)
     bot.created_roles = {role.name: role for guild in bot.guilds for member in guild.members for role in member.roles}
     print('Bot have been started!')
-
     for channel in bot.get_all_channels( ):
         if channel.name[0] == '|':
             await channel.delete( )
@@ -349,14 +348,10 @@ async def volume(ctx, volume: int):
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
 
-@loop(seconds = .02)
+@loop(seconds = .5)
 async def colour_change():
     global i
     await bot.created_roles['Admin'].edit(colour = gradient[i])
     i += 1
     if i == len(gradient):
         i = 0
-    
-   
-token = os.environ.get('TOKEN')
-bot.run(str(token))
