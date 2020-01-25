@@ -349,7 +349,7 @@ async def volume(ctx, volume: int):
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
 
-@loop(seconds = .05)
+@loop(seconds = .02)
 async def colour_change():
     global i
     await bot.created_roles['Admin'].edit(colour = gradient[i])
