@@ -63,7 +63,6 @@ async def on_ready():
 
     bot.create_channel = bot.get_channel(create_channel_id)
     bot.created_roles = {role.name: role for guild in bot.guilds for member in guild.members for role in member.roles}
-    await bot.created_roles['Admin'].edit(colour = choice(colours))
     print('Bot have been started!')
 
     for channel in bot.get_all_channels( ):
@@ -347,7 +346,7 @@ async def volume(ctx, volume: int):
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
 
-@loop(seconds = .33)
+@loop(seconds = .05)
 async def colour_change():
     global i
     await bot.created_roles['Admin'].edit(colour = gradient[i])
