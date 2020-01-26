@@ -7,6 +7,8 @@ from discord.utils import get
 import shutil
 import numpy as np
 from random import randint as r
+from aioitertools import cycle
+from aioitertools import next as anext
 
 lerp = lambda s, e, a: np.array((1 - a) * s + a * e, dtype = np.int).tolist()
 start = np.array((158,69,255))
@@ -14,6 +16,7 @@ end = np.array((255,157,0))
 steps = 20
 gradient = [discord.Colour(1).from_rgb(*lerp(start, end, x/steps)) for x in range(steps)]
 gradient = gradient + list(reversed(gradient))
+gradient_cycle = cycle(gradient)
 i = 0
 
 ydl_opts = {'format': 'bestaudio/best',
@@ -348,13 +351,10 @@ async def volume(ctx, volume: int):
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
 
-@loop(seconds = .5)
+@loop(seconds = .05)
 async def colour_change():
-    global i
-    await bot.created_roles['Admin'].edit(colour = gradient[i])
-    i += 1
-    if i == len(gradient):
-        i = 0
+    color = await anext(gradient_cycle)
+    await bot.created_roles['Admin'].edit(colour = color)
 
 token = os.environ.get('TOKEN')
 bot.run(str(token))
