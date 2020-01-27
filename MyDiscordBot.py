@@ -9,15 +9,29 @@ import numpy as np
 from random import randint as r
 from aioitertools import cycle
 from aioitertools import next as anext
+from math import sin, cos, pi
+
 
 lerp = lambda s, e, a: np.array((1 - a) * s + a * e, dtype = np.int).tolist()
-start = np.array((158,69,255))
-end = np.array((255,157,0))
-steps = 20
-gradient = [discord.Colour(1).from_rgb(*lerp(start, end, x/steps)) for x in range(steps)]
-gradient = gradient + list(reversed(gradient))
-gradient_cycle = cycle(gradient)
-i = 0
+
+
+def get_spiral_gradient(r = 115):
+    center = 255/2
+    colors = []
+    den = 15
+    dx = pi/den
+    dt = r/(den*2)
+    t = 0; x = 0
+    while x < 4*pi and t < 2*r:
+        colors.append(discord.Colour(1).from_rgb(int(center + r * cos(x)), int(center + r * sin(x)), int(t)))
+        x += dx; t += dt
+    t = 2*r; x = 0
+    while x < 4*pi and t > 0:
+        colors.append(discord.Colour(1).from_rgb(int(center + r * cos(x)), int(center + r * sin(x)), int(t)))
+        x += dx; t -= dt
+    return colors
+
+gradient_cycle = cycle(get_spiral_gradient(125))
 
 ydl_opts = {'format': 'bestaudio/best',
             'postprocessors': [{'key': 'FFmpegExtractAudio',
@@ -40,8 +54,6 @@ current_playing_pos = 0
 create_channel_id = 668969213368729660
 
 bot = commands.Bot(command_prefix = '!')
-
-colours = [discord.Colour(0xe91e63), discord.Colour(0x0000FF0), discord.Colour(0x00FF00), discord.Colour(0xFF0000)]
 
 def _channel_name_helper(member): #describe few activities to correct show
     if member.activity:
@@ -70,7 +82,10 @@ async def on_ready():
     for channel in bot.get_all_channels( ):
         if channel.name[0] == '|':
             await channel.delete( )
-    colour_change.start()
+    await bot.change_presence(status = discord.Status.idle, activity = discord.Game('бога') )
+    change_colour.start( )
+    #bot.loop.create_task(change_colour( ))
+
 
 @bot.event
 async def on_member_update(before, after):
@@ -351,10 +366,15 @@ async def volume(ctx, volume: int):
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
 
-@loop(seconds = .05)
-async def colour_change():
-    color = await anext(gradient_cycle)
-    await bot.created_roles['Admin'].edit(colour = color)
+@loop(seconds = .33)
+async def change_colour():
+    try:
+        color = await anext(gradient_cycle)
+        await bot.created_roles['Admin'].edit(colour = color)
+    except discord.HTTPException as e:
+        pass
+    except:
+        pass
 
 token = os.environ.get('TOKEN')
 bot.run(str(token))
