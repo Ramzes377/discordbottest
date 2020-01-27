@@ -366,7 +366,7 @@ async def volume(ctx, volume: int):
     ctx.voice_client.source.volume = volume / 100
     await ctx.send(f"Changed volume to {volume}%")
 
-@loop(seconds = .33)
+@loop(seconds = 2)
 async def change_colour():
     try:
         color = await anext(gradient_cycle)
