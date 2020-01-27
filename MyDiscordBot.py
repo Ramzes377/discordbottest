@@ -18,7 +18,7 @@ lerp = lambda s, e, a: np.array((1 - a) * s + a * e, dtype = np.int).tolist()
 def get_spiral_gradient(r = 115):
     center = 255/2
     colors = []
-    den = 15
+    den = 25
     dx = pi/den
     dt = r/(den*2)
     t = 0; x = 0
