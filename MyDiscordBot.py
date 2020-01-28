@@ -1,11 +1,12 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
+from discord.ext.tasks import loop
 from aioitertools import cycle
 from aioitertools import next as anext
-from math import sin, cos, radians
 from random import randint as r
 
 def get_spiral_gradient(r = 120, step = 5):
+    from math import sin, cos, radians
     first = []; second = []
     num_of_spins = 2
     x_degrees = num_of_spins * 360
@@ -13,22 +14,14 @@ def get_spiral_gradient(r = 120, step = 5):
     t1 =  (255 - 2 * r)/2; t2 = 255 - t1
     for x in range(0, x_degrees, step):
         angle = radians(x)
-        first.append(discord.Colour(1).from_rgb(*(int(255 / 2 + r * cos(angle)), int(255 / 2 + r * sin(angle)), int(t1))))
-        second.append(discord.Colour(1).from_rgb(*(int(255 / 2 + r * cos(angle)), int(255 / 2 + r * sin(angle)), int(t2))))
+        first.append(discord.Colour(1).from_rgb(int(255 / 2 + r * cos(angle)), int(255 / 2 + r * sin(angle)), int(t1)))
+        second.append(discord.Colour(1).from_rgb(int(255 / 2 + r * cos(angle)), int(255 / 2 + r * sin(angle)), int(t2)))
         t1 += dt; t2 -= dt
     return first + second
 
 gradient_cycle = cycle(get_spiral_gradient())
 
 created_channels = {} # User_Name : Channel
-
-
-# _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
-#                discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
-#                4:                              int(os.environ.get('Category_custom')),
-#                0:                              int(os.environ.get('Category_idle'))}
-#
-# create_channel_id = int(os.environ.get('Create_channel_ID'))
 
 _categories = {discord.ActivityType.playing:   531556241663721492,
                discord.ActivityType.streaming: 669927306562895900,
@@ -123,7 +116,7 @@ async def on_voice_state_update(member, before, after):
             await member.move_to(created_channels[member_name])
 
 
-@tasks.loop(minutes = 1)
+@loop(minutes = 1)
 async def change_colour():
     if any(user.status == discord.Status.online for user in bot.created_roles['Admin'].members):
         try:
