@@ -22,6 +22,14 @@ gradient_cycle = cycle(get_spiral_gradient())
 
 created_channels = {} # User_Name : Channel
 
+
+# _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
+#                discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
+#                4:                              int(os.environ.get('Category_custom')),
+#                0:                              int(os.environ.get('Category_idle'))}
+#
+# create_channel_id = int(os.environ.get('Create_channel_ID'))
+
 _categories = {discord.ActivityType.playing:   531556241663721492,
                discord.ActivityType.streaming: 669927306562895900,
                4:                              531504241500749835,
@@ -81,6 +89,7 @@ async def on_member_update(before, after):
                 await after.add_roles(role)
             else:
                 await after.add_roles(bot.created_roles[role_name])
+
 
 @bot.event
 async def on_voice_state_update(member, before, after):
