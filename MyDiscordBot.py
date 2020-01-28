@@ -5,6 +5,17 @@ from discord.ext.tasks import loop
 from aioitertools import cycle, next as anext
 from random import randint as r
 
+bot = commands.Bot(command_prefix = '!')
+
+created_channels = {} # User_Name : Channel
+
+create_channel_id = int(os.environ.get('Create_channel_ID'))
+
+_categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
+               discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
+               4:                              int(os.environ.get('Category_custom')),
+               0:                              int(os.environ.get('Category_idle'))}
+
 def get_spiral_gradient(r = 120, step = 5):
     from math import sin, cos, radians
     first = []; second = []
@@ -21,16 +32,6 @@ def get_spiral_gradient(r = 120, step = 5):
 
 gradient_cycle = cycle(get_spiral_gradient())
 
-created_channels = {} # User_Name : Channel
-
-_categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
-               discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
-               4:                              int(os.environ.get('Category_custom')),
-               0:                              int(os.environ.get('Category_idle'))}
-
-create_channel_id = int(os.environ.get('Create_channel_ID'))
-
-bot = commands.Bot(command_prefix = '!')
 
 def _channel_name_helper(member): #describe few activities to correct show
     if member.activity:
