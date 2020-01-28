@@ -22,12 +22,12 @@ gradient_cycle = cycle(get_spiral_gradient())
 
 created_channels = {} # User_Name : Channel
 
-_categories = {discord.ActivityType.playing: os.environ.get('Category_playing'),
-               discord.ActivityType.streaming: os.environ.get('Category_steaming'),
-               4: os.environ.get('Category_custom'),
-               0: os.environ.get('Category_idle')}
+_categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
+               discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
+               4:                              int(os.environ.get('Category_custom')),
+               0:                              int(os.environ.get('Category_idle'))}
 
-create_channel_id = os.environ.get('Create_channel_ID')
+create_channel_id = int(os.environ.get('Create_channel_ID'))
 
 bot = commands.Bot(command_prefix = '!')
 
