@@ -1,8 +1,7 @@
 import discord
 from discord.ext import commands
 from discord.ext.tasks import loop
-from aioitertools import cycle
-from aioitertools import next as anext
+from aioitertools import cycle, next as anext
 from random import randint as r
 
 def get_spiral_gradient(r = 120, step = 5):
@@ -22,6 +21,14 @@ def get_spiral_gradient(r = 120, step = 5):
 gradient_cycle = cycle(get_spiral_gradient())
 
 created_channels = {} # User_Name : Channel
+
+
+# _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
+#                discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
+#                4:                              int(os.environ.get('Category_custom')),
+#                0:                              int(os.environ.get('Category_idle'))}
+#
+# create_channel_id = int(os.environ.get('Create_channel_ID'))
 
 _categories = {discord.ActivityType.playing:   531556241663721492,
                discord.ActivityType.streaming: 669927306562895900,
@@ -99,7 +106,7 @@ async def on_voice_state_update(member, before, after):
 
     elif after.channel == bot.create_channel: #Creating new channel
         if member_name not in created_channels: #if not created already
-            category = created_categories.get(member.activity.type if member.activity else 0)
+            category = _categories.get(member.activity.type if member.activity else 0)
             channel_name = _channel_name_helper(member)
             overwrites = {member.guild.default_role: discord.PermissionOverwrite(connect = True,
                                                                                  speak = True,
@@ -116,7 +123,7 @@ async def on_voice_state_update(member, before, after):
             await member.move_to(created_channels[member_name])
 
 
-@loop(minutes = 1)
+@loop(seconds = 58)
 async def change_colour():
     if any(user.status == discord.Status.online for user in bot.created_roles['Admin'].members):
         try:
