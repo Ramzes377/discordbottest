@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 from aioitertools import cycle
 from aioitertools import next as anext
 from math import sin, cos, radians
+from random import randint as r
 
 def get_spiral_gradient(r = 120, step = 5):
     first = []; second = []
