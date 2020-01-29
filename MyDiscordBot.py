@@ -16,23 +16,6 @@ _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_play
                4:                              int(os.environ.get('Category_custom')),
                0:                              int(os.environ.get('Category_idle'))}
 
-def get_spiral_gradient(r = 120, step = 5):
-    from math import sin, cos, radians
-    first = []; second = []
-    num_of_spins = 2
-    x_degrees = num_of_spins * 360
-    dt = (step * 2 * r)/x_degrees
-    t1 =  (255 - 2 * r)/2; t2 = 255 - t1
-    for x in range(0, x_degrees, step):
-        angle = radians(x)
-        first.append(discord.Colour(1).from_rgb(int(255 / 2 + r * cos(angle)), int(255 / 2 + r * sin(angle)), int(t1)))
-        second.append(discord.Colour(1).from_rgb(int(255 / 2 + r * cos(angle)), int(255 / 2 + r * sin(angle)), int(t2)))
-        t1 += dt; t2 -= dt
-    return first + second
-
-gradient_cycle = cycle(get_spiral_gradient())
-
-
 def _channel_name_helper(member): #describe few activities to correct show
     if member.activity:
         activity_name = member.activity.name
@@ -95,29 +78,37 @@ async def on_voice_state_update(member, before, after):
             else: # Client's channel isn't empty
                 channel = created_channels.pop(member_name)
                 new_leader = channel.members[0] #New leader of these channel
+                _permissions = {member: discord.PermissionOverwrite(connect = True,
+                                                                    speak = True,
+                                                                    use_voice_activation = True),
+                                new_leader: discord.PermissionOverwrite(kick_members = True,
+                                                                        mute_members = True,
+                                                                        deafen_members = True,
+                                                                        manage_channels = True,
+                                                                        create_instant_invite = True)}
                 created_channels[new_leader.display_name] = channel
                 await created_channels[new_leader.display_name].edit(name = _channel_name_helper(new_leader))
 
     elif after.channel == bot.create_channel: #Creating new channel
         if member_name not in created_channels: #if not created already
-            category = _categories.get(member.activity.type if member.activity else 0)
+            _category = _categories.get(member.activity.type if member.activity else 0)
             channel_name = _channel_name_helper(member)
-            overwrites = {member.guild.default_role: discord.PermissionOverwrite(connect = True,
-                                                                                 speak = True,
-                                                                                 use_voice_activation = True),
-                          member: discord.PermissionOverwrite(kick_members = True,
-                                                              mute_members = True,
-                                                              deafen_members = True,
-                                                              manage_channels = True,
-                                                              create_instant_invite = True)}
-            channel = await member.guild.create_voice_channel(channel_name, category = category, overwrites = overwrites)
+            _permissions = {member.guild.default_role: discord.PermissionOverwrite(connect = True,
+                                                                                   speak = True,
+                                                                                   use_voice_activation = True),
+                            member: discord.PermissionOverwrite(kick_members = True,
+                                                                mute_members = True,
+                                                                deafen_members = True,
+                                                                manage_channels = True,
+                                                                create_instant_invite = True)}
+            channel = await member.guild.create_voice_channel(channel_name, category = _category, overwrites = _permissions)
             created_channels[member_name] = channel
             await member.move_to(channel)
         else: #if created then just back client to himself channel
             await member.move_to(created_channels[member_name])
 
 
-@loop(seconds = 58)
+@loop(seconds = 200)
 async def change_colour():
     if any(user.status == discord.Status.online for user in bot.created_roles['Admin'].members):
         try:
