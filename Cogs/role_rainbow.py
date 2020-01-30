@@ -30,7 +30,7 @@ class Role_colors(commands.Cog):
         print(f'{type(self).__name__} starts')
         self.role_change_colour.start( )
 
-    @tasks.loop(minutes = 1)
+    @tasks.loop(seconds = 200)
     async def role_change_colour(self):
         if any(user.status == discord.Status.online for user in self.bot.created_roles['Admin'].members):
             try:
@@ -38,8 +38,8 @@ class Role_colors(commands.Cog):
                 await self.bot.created_roles['Admin'].edit(colour = color)
             except discord.HTTPException:
                 pass
-    
-         @commands.command()
+
+    @commands.command()
     async def color_me(self, ctx, red = 0, green = 0, blue = 0):
         """Set user role color. Type:\n!color_me 'red (0-255)' 'green (0-255)' 'blue (0-255)'"""
         if 0 <= red <= 255 and 0 <= green <= 255 and 0 <= blue <= 255:
