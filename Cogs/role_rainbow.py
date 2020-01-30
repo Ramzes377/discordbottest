@@ -38,6 +38,27 @@ class Role_colors(commands.Cog):
                 await self.bot.created_roles['Admin'].edit(colour = color)
             except discord.HTTPException:
                 pass
+    
+         @commands.command()
+    async def color_me(self, ctx, red = 0, green = 0, blue = 0):
+        """Set user role color. Type:\n!color_me 'red (0-255)' 'green (0-255)' 'blue (0-255)'"""
+        if 0 <= red <= 255 and 0 <= green <= 255 and 0 <= blue <= 255:
+            user = ctx.message.author
+            user_role = self.bot.created_roles['@everyone']
+
+            for role in user.roles:
+                if role.hoist and role.position > user_role.position:
+                    user_role = role
+
+            if user_role == self.bot.created_roles['@everyone']:
+                await ctx.send("У вас нет отдельно отображаемых ролей!")
+                return
+
+            color = discord.Color(1).from_rgb(int(red), int(green), int(blue))
+            await role.edit(colour = color)
+            await ctx.send(f"Успешно изменён цвет для роли {user_role.name}.")
+        else:
+            await ctx.send("Некорректный ввод цвета. Введите !help color_me")
 
 def setup(bot):
     bot.add_cog(Role_colors(bot))
