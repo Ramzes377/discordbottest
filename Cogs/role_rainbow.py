@@ -30,7 +30,7 @@ class Role_colors(commands.Cog):
         print(f'{type(self).__name__} starts')
         self.role_change_colour.start( )
 
-    @tasks.loop(seconds = 200)
+    @tasks.loop(minutes = 1)
     async def role_change_colour(self):
         if any(user.status == discord.Status.online for user in self.bot.created_roles['Admin'].members):
             try:
