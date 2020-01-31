@@ -92,7 +92,7 @@ class Channels_manager(commands.Cog):
     async def _transfer_channel(self, user):
         channel = created_channels.pop(user)
         new_leader = channel.members[0]  # New leader of these channel
-        _permissions = {user: user.guild.default_role, new_leader: self.leader_role_rights}
+        _permissions = {user: self.default_role_rights, new_leader: self.leader_role_rights}
         created_channels[new_leader] = channel
         await created_channels[new_leader].edit(name = _channel_name_helper(new_leader), overwrites = _permissions)
 
