@@ -28,9 +28,8 @@ class Role_colors(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(f'{type(self).__name__} starts')
-        self.role_change_colour.start( )
 
-    @tasks.loop(seconds = 200)
+    @tasks.loop(seconds = 1)
     async def role_change_colour(self):
         if any(user.status == discord.Status.online for user in self.bot.created_roles['Admin'].members):
             try:
@@ -56,9 +55,47 @@ class Role_colors(commands.Cog):
 
             color = discord.Color(1).from_rgb(int(red), int(green), int(blue))
             await role.edit(colour = color)
-            await ctx.send(f"Успешно изменён цвет для роли {user_role.name}.")
+            message = await ctx.send(f"Успешно изменён цвет для роли {user_role.name}.")
         else:
-            await ctx.send("Некорректный ввод цвета. Введите !help color_me")
+            message = await ctx.send("Некорректный ввод цвета. Введите !help color_me")
+
+        await asyncio.sleep(15)
+        await ctx.message.delete( )
+        await message.delete( )
+
+    @commands.command()
+    async def start_rainbow(self, ctx):
+        try:
+            self.role_change_colour.start( )
+        except RuntimeError:
+            message = await ctx.send("Ошибка! Событийный цикл уже запущен!")
+            await asyncio.sleep(15)
+            await message.delete()
+        finally:
+            await ctx.message.delete( )
+
+    @commands.command()
+    async def stop_rainbow(self, ctx):
+        self.role_change_colour.stop( )
+        message = await ctx.send("Остановлен событийный цикл.")
+        await asyncio.sleep(5)
+        await ctx.message.delete( )
+        await message.delete( )
+
+    @commands.command()
+    async def clean_channel(self, ctx, messages_count = 200):
+        if any(role in self.bot.privileged_roles for role in ctx.message.author.roles):
+            print('inside')
+            channel = ctx.message.channel
+            async for message in channel.history(limit = messages_count):
+                await message.delete()
+        else:
+            print('outside')
+            message = await ctx.send("У вас нет прав для этого!")
+            await asyncio.sleep(20)
+            await ctx.message.delete( )
+            await message.delete( )
+
 
 def setup(bot):
     bot.add_cog(Role_colors(bot))
