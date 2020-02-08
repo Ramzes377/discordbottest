@@ -87,7 +87,7 @@ class Role_colors(commands.Cog):
 
     @commands.command()
     async def clean_channel(self, ctx, messages_count = 200):
-        '''Privileged_roles only'''
+        '''Privileged roles only'''
         if any(role in self.bot.privileged_roles for role in ctx.message.author.roles):
             channel = ctx.message.channel
             async for message in channel.history(limit = messages_count):
