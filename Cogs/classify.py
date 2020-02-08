@@ -13,6 +13,8 @@ _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_play
                0:                              int(os.environ.get('Category_idle'))}
 
 
+privileged_role_names = ['Admin']
+
 def _channel_name_helper(member): #describe few activities to correct show
     if member.activity:
         activity_name = member.activity.name
@@ -27,6 +29,7 @@ def _channel_name_helper(member): #describe few activities to correct show
         else:
             return f"|{member.activity.name}| {member.display_name}'s channel"
     return f"|{member.display_name}'s channel"
+
 
 class Channels_manager(commands.Cog):
     def __init__(self, bot):
@@ -52,10 +55,8 @@ class Channels_manager(commands.Cog):
             _categories[cat] = self.bot.get_channel(_categories[cat])  # getting categories from their IDs
 
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
-        self.bot.created_roles = {role.name: role for guild in self.bot.guilds
-                                  for member in guild.members
-                                  for role in member.roles}
-
+        self.bot.created_roles = {role.name: role for guild in self.bot.guilds for role in guild.roles}
+        self.bot.privileged_roles = [self.bot.created_roles[role_name] for role_name in privileged_role_names]
         for channel in self.bot.get_all_channels( ):
             if channel.name[0] == '|':
                 await channel.delete( )
@@ -94,7 +95,7 @@ class Channels_manager(commands.Cog):
         new_leader = channel.members[0]  # New leader of these channel
         _permissions = {user: self.default_role_rights, new_leader: self.leader_role_rights}
         created_channels[new_leader] = channel
-        await created_channels[new_leader].edit(name = _channel_name_helper(new_leader), overwrites = _permissions)
+        await channel.edit(name = _channel_name_helper(new_leader), overwrites = _permissions)
 
     async def _create_channel(self, user):
         _category = _categories.get(user.activity.type if user.activity else 0)
