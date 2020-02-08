@@ -65,35 +65,49 @@ class Role_colors(commands.Cog):
 
     @commands.command()
     async def start_rainbow(self, ctx):
+        '''Admin only'''
         try:
-            self.role_change_colour.start( )
+            if self.is_admin(ctx.message.author):
+                self.role_change_colour.start( )
+            else:
+                await self.rights_violation(ctx)
         except RuntimeError:
-            message = await ctx.send("Ошибка! Событийный цикл уже запущен!")
-            await asyncio.sleep(15)
-            await message.delete()
+            await self.send_removable_message(ctx, "Ошибка! Событийный цикл уже запущен!", 10)
         finally:
             await ctx.message.delete( )
 
     @commands.command()
     async def stop_rainbow(self, ctx):
-        self.role_change_colour.stop( )
-        message = await ctx.send("Остановлен событийный цикл.")
-        await asyncio.sleep(5)
-        await ctx.message.delete( )
-        await message.delete( )
+        '''Admin only'''
+        if self.is_admin(ctx.message.author):
+            self.role_change_colour.stop( )
+            await self.send_removable_message(ctx, "Остановлен событийный цикл.", 10)
+        else:
+            await self.rights_violation(ctx)
 
     @commands.command()
     async def clean_channel(self, ctx, messages_count = 200):
+        '''Privileged_roles only'''
         if any(role in self.bot.privileged_roles for role in ctx.message.author.roles):
             channel = ctx.message.channel
             async for message in channel.history(limit = messages_count):
                 await message.delete()
         else:
-            message = await ctx.send("У вас нет прав для этого!")
-            await asyncio.sleep(20)
+            await self.rights_violation(ctx)
             await ctx.message.delete( )
-            await message.delete( )
 
+    def is_admin(self, user):
+        return self.bot.created_roles['Admin'] in user.roles
+
+
+    async def send_removable_message(self, ctx, message, delay = 5):
+        message = await ctx.send(message)
+        await asyncio.sleep(delay)
+        await message.delete()
+
+
+    async def rights_violation(self, ctx):
+        await self.send_removable_message(ctx, "У вас нет прав для этого!", 10)
 
 def setup(bot):
     bot.add_cog(Role_colors(bot))
