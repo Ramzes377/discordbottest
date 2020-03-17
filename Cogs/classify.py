@@ -15,21 +15,17 @@ _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_play
 
 privileged_role_names = ['Admin']
 
+
 def _channel_name_helper(member): #describe few activities to correct show
     if member.activity:
         activity_name = member.activity.name
-        if activity_name.lower().replace(' ', '') == "pathofexile":
-            return f"|PoE| {member.display_name}'s channel"
-        elif activity_name.lower().replace(' ', '') == "dota2":
-            return f"|Dota| {member.display_name}'s channel"
-        elif activity_name.lower().replace(' ', '')[:9] == 'minecraft':
-            return f"|Minecraft| {member.display_name}'s channel"
-        elif activity_name == 'Custom Status':
-            return f"|{member.activity.state}| {member.display_name}'s channel"
-        else:
-            return f"|{member.activity.name}| {member.display_name}'s channel"
+        if len(activity_name) > 6:
+            short_name = ''
+            for word in re.split(r'\W', activity_name):
+                short_name += word[:1] if word else ' '
+            return f"|{short_name}| {member.display_name}'s channel"
+        return f"|{activity_name}| {member.display_name}'s channel"
     return f"|{member.display_name}'s channel"
-
 
 class Channels_manager(commands.Cog):
     def __init__(self, bot):
@@ -61,6 +57,15 @@ class Channels_manager(commands.Cog):
             if channel.name[0] == '|':
                 await channel.delete( )
 
+        if self.bot.create_channel.members:
+            user = self.bot.create_channel.members[0]
+            category = _categories.get(user.activity.type if user.activity else 0)
+            permissions = {user.guild.default_role: self.default_role_rights, user: self.leader_role_rights}
+            channel = await user.guild.create_voice_channel(_channel_name_helper(user), category = category, overwrites = permissions)
+            created_channels[user] = channel
+            for user in self.bot.create_channel.members:
+                await user.move_to(channel)
+                
         await self.bot.change_presence(status = discord.Status.idle, activity = discord.Game('бога'))
 
         print(f'{type(self).__name__} starts')
