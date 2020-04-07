@@ -121,9 +121,8 @@ class Channels_manager(commands.Cog):
         return time, session_id, set([user])
 
     async def end_session_message(self, channel):
-        time = datetime.datetime.now()
         start_time, sess_num, members = sessions.pop(channel)
-        sess_duration = time - start_time
+        sess_duration = datetime.datetime.now() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) - start_time
         await self.bot.logger_channel.send(f"\nCессия №{sess_num} окончена. \nПродолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.display_name, members))}")
 
 def setup(bot):
