@@ -91,7 +91,7 @@ class Role_colors(commands.Cog):
     @commands.command()
     async def clean_channel(self, ctx, messages_count = 200):
         '''Privileged roles only'''
-        if any(role in self.bot.privileged_roles for role in ctx.message.author.roles):
+        if any(role.name in self.bot.privileged_roles for role in ctx.message.author.roles):
             channel = ctx.message.channel
             async for message in channel.history(limit = messages_count):
                 await message.delete()
