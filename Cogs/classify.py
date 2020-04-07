@@ -114,7 +114,7 @@ class Channels_manager(commands.Cog):
                 await member.move_to(created_channels[member])
 
     async def start_session_message(self, user, channel):
-        time = datetime.datetime.now()
+        time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
         text_time = "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
         session_id = len(sessions) + 1
         await self.bot.logger_channel.send(f"{user.display_name} начал сессию №{session_id} в {text_time}")
@@ -125,8 +125,6 @@ class Channels_manager(commands.Cog):
         start_time, sess_num, members = sessions.pop(channel)
         sess_duration = time - start_time
         await self.bot.logger_channel.send(f"\nCессия №{sess_num} окончена. \nПродолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.display_name, members))}")
-
-
 
 def setup(bot):
     bot.add_cog(Channels_manager(bot))
