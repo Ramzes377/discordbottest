@@ -92,7 +92,7 @@ class Channels_manager(commands.Cog):
         channel = await user.guild.create_voice_channel(_channel_name_helper(user), category=category, overwrites=permissions)
         created_channels[user] = channel
         await user.move_to(channel)
-        sessions[channel] = await self.start_session_message(user.display_name, channel)
+        sessions[channel] = await self.start_session_message(user, channel)
 
 
     @commands.Cog.listener()
@@ -104,6 +104,8 @@ class Channels_manager(commands.Cog):
                     await created_channels.pop(member).delete( )
                 else:  # Client's channel isn't empty
                     await self._transfer_channel(member)
+            elif after.channel:
+                sessions[after.channel][2].add(member)
 
         elif after.channel == self.bot.create_channel:  # Creating new channel
             if member not in created_channels:  # if not created already
@@ -111,19 +113,19 @@ class Channels_manager(commands.Cog):
             else:  # if created then just back client to himself channel
                 await member.move_to(created_channels[member])
 
-
-    async def start_session_message(self, user_name, channel):
+    async def start_session_message(self, user, channel):
         time = datetime.datetime.now()
         text_time = "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
         session_id = len(sessions) + 1
-        await self.bot.logger_channel.send(f"{user_name} начал сессию №{session_id} в {text_time}")
-        return time, session_id
+        await self.bot.logger_channel.send(f"{user.display_name} начал сессию №{session_id} в {text_time}")
+        return time, session_id, set([user])
 
     async def end_session_message(self, channel):
         time = datetime.datetime.now()
-        start_time, sess_num = sessions.pop(channel)
+        start_time, sess_num, members = sessions.pop(channel)
         sess_duration = time - start_time
-        await self.bot.logger_channel.send(f"Cессия №{sess_num} окончена. Продолжительность: {str(sess_duration).split('.')[0]}")
+        await self.bot.logger_channel.send(f"\nCессия №{sess_num} окончена. \nПродолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.display_name, members))}")
+
 
 
 def setup(bot):
