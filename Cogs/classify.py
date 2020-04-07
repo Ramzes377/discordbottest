@@ -5,6 +5,7 @@ import re
 import datetime
 
 created_channels = {} # User_Name : Channel
+sessions = {} # Channel : start_time
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
 logger_id = int(os.environ.get('Logger_channel_ID'))
