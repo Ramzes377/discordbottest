@@ -20,8 +20,6 @@ def get_spiral_gradient(r = 120, step = 5):
 
 gradient_cycle = cycle(get_spiral_gradient())
 
-privileged_role_names = ['Admin']
-
 
 class Role_colors(commands.Cog):
     def __init__(self, bot):
@@ -29,7 +27,7 @@ class Role_colors(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        self.bot.privileged_roles = privileged_role_names
+        self.bot.privileged_roles = ['Admin']
         print(f'{type(self).__name__} starts')
 
     @tasks.loop(minutes = 1)
