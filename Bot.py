@@ -17,9 +17,11 @@ async def on_ready():
     
 @bot.event
 async def on_error(event, *args, **kwargs):
-    traceback = str(event) + '| '
-    traceback += ' '.join(map(str, args))
-    await bot.fetch_user(admin_id).send(traceback)
+    traceback = 'Error in event ' + str(event) + '\n'
+    traceback += 'Args: ' + ' '.join(map(str, args)) + '\n'
+    traceback += 'Kwargs: ' + ' '.join(map(lambda key, value: str(key) + ' - ' + str(value), kwargs.items()))
+    admin = await bot.fetch_user(admin_id)
+    await admin.send(traceback)
 
 token = os.environ.get('TOKEN')
 bot.run(str(token))
