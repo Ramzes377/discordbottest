@@ -28,14 +28,14 @@ def _channel_name_helper(member): #describe few activities to correct show
     return f"|{member.display_name}'s channel"
 
 def decorator(function):
-    sessions_counter = dict.fromkeys(range(1, 366), 0)
+    sessions_counter = dict.fromkeys(range(1, 368), 0)
     def wrapper():
         day, is_leap = function()
         if not day:
             for key in sessions_counter:
                 sessions_counter[key] = 0
         sessions_counter[day] += 1
-        yield f'№{sessions_counter[day]} | {day}/{365 if is_leap else 364}'
+        yield f'№{sessions_counter[day]} | {day}/{366 if is_leap else 365}'
     return wrapper
 
 def is_leap_year(year):
