@@ -5,7 +5,7 @@ import re
 import datetime
 
 created_channels = {} # User_Name : Channel
-sessions = {} # Channel : start_time
+sessions = {} # Channel : start_time, session_id,  set_of_users, message
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
 logger_id = int(os.environ.get('Logger_channel_ID'))
@@ -138,14 +138,22 @@ class Channels_manager(commands.Cog):
         time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
         text_time = "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
         sess_id = next(session_id())
-        await self.bot.logger_channel.send(f"{user.display_name} начал сессию {sess_id} в {text_time}")
-        return time, sess_id, set([user])
+        embed_obj = discord.Embed(title=f"{user.display_name} начал сессию {sess_id}", description=f'\nВремя начала: {text_time}', color = discord.Color(0).from_rgb(100, 200, 150))
+        msg = await self.bot.logger_channel.send(embed = embed_obj)
+        return time, sess_id, set([user]), msg
 
     async def end_session_message(self, channel):
-        start_time, sess_id, members = sessions.pop(channel)
+        start_time, sess_id, members, msg = sessions.pop(channel)
         sess_duration = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) - start_time
-        await self.bot.logger_channel.send(f"\nCессия {sess_id} окончена. \nПродолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.display_name, members))}")
-
+        if sess_duration.seconds > 120:
+            embed_obj = discord.Embed(title=f"Сессия {sess_id} окончена!",
+                                      description=f"Продолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.mention, members))}",
+                                      color=discord.Color(0).from_rgb(200, 100, 150))
+            await self.bot.logger_channel.send(embed = embed_obj)
+        else:
+            await msg.delete()
+            
+            
 def setup(bot):
     bot.add_cog(Channels_manager(bot))
 
