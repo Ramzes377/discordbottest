@@ -28,7 +28,7 @@ def _channel_name_helper(member): #describe few activities to correct show
     return f"|{member.display_name}'s channel"
 
 def decorator(function):
-    sessions_counter = dict.fromkeys(range(1, 368), 0)
+    sessions_counter = dict.fromkeys(range(1, 367), 0)
     def wrapper():
         day, is_leap = function()
         if not day:
