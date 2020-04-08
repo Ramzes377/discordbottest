@@ -31,7 +31,7 @@ def decorator(function):
     sessions_counter = dict.fromkeys(range(1, 367), 0)
     def wrapper():
         day, is_leap = function()
-        if not day:
+        if day == 1:
             for key in sessions_counter:
                 sessions_counter[key] = 0
         sessions_counter[day] += 1
