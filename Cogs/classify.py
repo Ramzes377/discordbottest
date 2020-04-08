@@ -27,7 +27,28 @@ def _channel_name_helper(member): #describe few activities to correct show
         return f"|{activity_name}| {member.display_name}'s channel"
     return f"|{member.display_name}'s channel"
 
+def decorator(function):
+    sessions_counter = dict.fromkeys(range(1, 366), 0)
+    def wrapper():
+        day, is_leap = function()
+        if not day:
+            for key in sessions_counter:
+                sessions_counter[key] = 0
+        sessions_counter[day] += 1
+        yield f'№{sessions_counter[day]} | {day}/{365 if is_leap else 364}'
+    return wrapper
 
+def is_leap_year(year):
+    return True if not year % 400 else False if not year % 100 else True if not year % 4 else False
+
+@decorator
+def session_id():
+    cur_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
+    start_of_year = datetime.datetime(cur_time.year, 1, 1, 0, 0, 0, 0)
+    delta = cur_time - start_of_year
+    return delta.days + 1, is_leap_year(cur_time.year)
+  
+  
 class Channels_manager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -116,14 +137,14 @@ class Channels_manager(commands.Cog):
     async def start_session_message(self, user, channel):
         time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
         text_time = "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
-        session_id = len(sessions) + 1
-        await self.bot.logger_channel.send(f"{user.display_name} начал сессию №{session_id} в {text_time}")
-        return time, session_id, set([user])
+        sess_id = next(session_id())
+        await self.bot.logger_channel.send(f"{user.display_name} начал сессию {sess_id} в {text_time}")
+        return time, sess_id, set([user])
 
     async def end_session_message(self, channel):
-        start_time, sess_num, members = sessions.pop(channel)
-        sess_duration = datetime.datetime.now() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) - start_time
-        await self.bot.logger_channel.send(f"\nCессия №{sess_num} окончена. \nПродолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.display_name, members))}")
+        start_time, sess_id, members = sessions.pop(channel)
+        sess_duration = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) - start_time
+        await self.bot.logger_channel.send(f"\nCессия {sess_id} окончена. \nПродолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.display_name, members))}")
 
 def setup(bot):
     bot.add_cog(Channels_manager(bot))
