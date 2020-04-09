@@ -5,7 +5,7 @@ import re
 import datetime
 
 created_channels = {} # User_Name : Channel
-sessions = {} # Channel : start_time, session_id,  set_of_users, message
+sessions = {} # Channel : creator, start_time, session_id, message, set_of_users
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
 logger_id = int(os.environ.get('Logger_channel_ID'))
@@ -134,22 +134,33 @@ class Channels_manager(commands.Cog):
             else:  # if created then just back client to himself channel
                 await member.move_to(created_channels[member])
 
-    async def start_session_message(self, user, channel):
+    async def start_session_message(self, creator, channel):
         time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
         text_time = "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
         sess_id = next(session_id())
-        embed_obj = discord.Embed(title=f"{user.display_name} начал сессию {sess_id}", description=f'\nВремя начала: {text_time}', color = discord.Color(0).from_rgb(100, 200, 150))
+        embed_obj = discord.Embed(title=f"{creator.display_name} начал сессию {sess_id}", description=f'\nВремя начала: {text_time}\nСессия активна...', color = discord.Color.green())
         msg = await self.bot.logger_channel.send(embed = embed_obj)
-        return time, sess_id, set([user]), msg
+        return creator, time, sess_id, msg, set([creator])
 
     async def end_session_message(self, channel):
-        start_time, sess_id, members, msg = sessions.pop(channel)
-        sess_duration = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) - start_time
-        if sess_duration.seconds > 120:
-            embed_obj = discord.Embed(title=f"Сессия {sess_id} окончена!",
-                                      description=f"Продолжительность: {str(sess_duration).split('.')[0]}\nУчастники: {', '.join(map(lambda m: m.mention, members))}",
-                                      color=discord.Color(0).from_rgb(200, 100, 150))
-            await self.bot.logger_channel.send(embed = embed_obj)
+        creator, start_time, sess_id, msg, members = sessions.pop(channel)
+        end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)
+        sess_duration = end_time - start_time
+
+        if sess_duration.seconds > 2:
+            start_time_text = "%02d:%02d:%02d - %02d.%02d.%04d" % (start_time.hour, start_time.minute, start_time.second, start_time.day, start_time.month, start_time.year)
+            end_time_text = "%02d:%02d:%02d - %02d.%02d.%04d" % (end_time.hour, end_time.minute, end_time.second, end_time.day, end_time.month,  end_time.year)
+
+            desc = f"Создатель: {creator.mention}"
+            desc += f'\n Время начала: {start_time_text}'
+            desc += f'\nВремя окончания: {end_time_text}'
+            desc += f"\nПродолжительность: {str(sess_duration).split('.')[0]}"
+            desc += f"\nУчастники: {', '.join(map(lambda m: m.mention, members))}"
+
+            col = discord.Color.red()
+
+            embed_obj = discord.Embed(title=f"Сессия {sess_id} окончена!", description= desc, color=col)
+            await msg.edit(embed = embed_obj)
         else:
             await msg.delete()
             
