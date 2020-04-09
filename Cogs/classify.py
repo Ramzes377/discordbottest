@@ -152,7 +152,7 @@ class Channels_manager(commands.Cog):
             end_time_text = "%02d:%02d:%02d - %02d.%02d.%04d" % (end_time.hour, end_time.minute, end_time.second, end_time.day, end_time.month,  end_time.year)
 
             desc = f"Создатель: {creator.mention}"
-            desc += f'\n Время начала: {start_time_text}'
+            desc += f'\nВремя начала: {start_time_text}'
             desc += f'\nВремя окончания: {end_time_text}'
             desc += f"\nПродолжительность: {str(sess_duration).split('.')[0]}"
             desc += f"\nУчастники: {', '.join(map(lambda m: m.mention, members))}"
