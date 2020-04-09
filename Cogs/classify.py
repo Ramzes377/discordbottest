@@ -147,7 +147,7 @@ class Channels_manager(commands.Cog):
         end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)
         sess_duration = end_time - start_time
 
-        if sess_duration.seconds > 2:
+        if sess_duration.seconds > 120:
             start_time_text = "%02d:%02d:%02d - %02d.%02d.%04d" % (start_time.hour, start_time.minute, start_time.second, start_time.day, start_time.month, start_time.year)
             end_time_text = "%02d:%02d:%02d - %02d.%02d.%04d" % (end_time.hour, end_time.minute, end_time.second, end_time.day, end_time.month,  end_time.year)
 
