@@ -28,14 +28,19 @@ def _channel_name_helper(member): #describe few activities to correct show
     return f"|{member.display_name}'s channel"
 
 def decorator(function):
-    sessions_counter = dict.fromkeys(range(1, 367), 0)
-    def wrapper():
-        day, is_leap = function()
+    sessions_counter = dict.fromkeys(range(1, 367), 1)
+    def wrapper(*args, **kwargs):
+        day, is_leap = function(*args, **kwargs)
         if day == 1:
-            for key in sessions_counter:
-                sessions_counter[key] = 0
-        sessions_counter[day] += 1
-        yield f'№{sessions_counter[day]} | {day}/{366 if is_leap else 365}'
+            nonlocal sessions_counter
+            sessions_counter = dict.fromkeys(range(1, 367), 1)
+
+        yield f'№ {sessions_counter[day]} | {day}/{366 if is_leap else 365}'
+
+        satisfy_min_sess_duration = yield
+        if satisfy_min_sess_duration:
+            sessions_counter[day] += 1
+        yield
     return wrapper
 
 def is_leap_year(year):
@@ -134,10 +139,11 @@ class Channels_manager(commands.Cog):
             else:  # if created then just back client to himself channel
                 await member.move_to(created_channels[member])
 
-    async def start_session_message(self, creator, channel):
+     async def start_session_message(self, creator, channel):
         time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
         text_time = "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
-        sess_id = next(session_id())
+        self.id_gen = session_id()
+        sess_id = next(self.id_gen)
         embed_obj = discord.Embed(title=f"{creator.display_name} начал сессию {sess_id}", description=f'\nВремя начала: {text_time}\nСессия активна...', color = discord.Color.green())
         msg = await self.bot.logger_channel.send(embed = embed_obj)
         return creator, time, sess_id, msg, set([creator])
@@ -146,6 +152,9 @@ class Channels_manager(commands.Cog):
         creator, start_time, sess_id, msg, members = sessions.pop(channel)
         end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)
         sess_duration = end_time - start_time
+
+        next(self.id_gen)
+        self.id_gen.send(sess_duration.seconds > 120)
 
         if sess_duration.seconds > 120:
             start_time_text = "%02d:%02d:%02d - %02d.%02d.%04d" % (start_time.hour, start_time.minute, start_time.second, start_time.day, start_time.month, start_time.year)
@@ -156,10 +165,8 @@ class Channels_manager(commands.Cog):
             desc += f'\nВремя окончания: {end_time_text}'
             desc += f"\nПродолжительность: {str(sess_duration).split('.')[0]}"
             desc += f"\nУчастники: {', '.join(map(lambda m: m.mention, members))}"
-
-            col = discord.Color.red()
-
-            embed_obj = discord.Embed(title=f"Сессия {sess_id} окончена!", description= desc, color=col)
+            
+            embed_obj = discord.Embed(title=f"Сессия {sess_id} окончена!", description= desc, color=discord.Color.red())
             await msg.edit(embed = embed_obj)
         else:
             await msg.delete()
