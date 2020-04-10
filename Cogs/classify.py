@@ -135,7 +135,7 @@ class Channels_manager(commands.Cog):
         if not after.channel or after.channel != self.bot.create_channel:  # Client LEAVE FROM CHANNEL
             if member in created_channels:
                 if not created_channels[member].members:  # Client's channel is empty
-                    await self.end_session_message(member, created_channels[member])
+                    await self.end_session_message(created_channels[member])
                     await created_channels.pop(member).delete( )
                 else:  # Client's channel isn't empty
                     await self._transfer_channel(member)
