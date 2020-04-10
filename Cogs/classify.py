@@ -133,7 +133,7 @@ class Channels_manager(commands.Cog):
                 else:  # Client's channel isn't empty
                     await self._transfer_channel(member)
             elif after.channel:
-                sessions[after.channel][4].add(member)
+                sessions[after.channel][3].add(member)
 
         elif after.channel == self.bot.create_channel:  # Creating new channel
             if member not in created_channels:  # if not created already
