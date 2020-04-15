@@ -22,13 +22,6 @@ async def on_ready():
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsINFO(channel_id int, creator_id int, start_day int, session_id text, message_id int)')
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsMembers(channel_id int, member_id)')
 
-    for x in range(1, 367):
-        bot.db_cursor.execute("INSERT INTO SessionsID VALUES (?, ?, ?)", (x, 0, 0))
-    bot.db.commit()
-
-    # bot.db_cursor.execute("DELETE FROM SessionsID")
-    # bot.db.commit()
-
     admin = await bot.fetch_user(admin_id)
     await admin.send("I'am restarting!")
     print('Bot have been started!')
