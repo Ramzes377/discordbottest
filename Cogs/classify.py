@@ -136,7 +136,7 @@ class Channels_manager(commands.Cog):
         self.bot.db.commit()
         
 
-       async def start_session_message(self, creator, channel):
+    async def start_session_message(self, creator, channel):
         day_of_year, is_leap_year = session_id()
         past_sessions_counter, current_sessions_counter = tuple(self.bot.db_cursor.execute(
             "SELECT past_sessions_counter, current_sessions_counter FROM SessionsID WHERE current_day = ?",
