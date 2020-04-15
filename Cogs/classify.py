@@ -4,13 +4,13 @@ import os
 import re
 import datetime
 
-created_channels = {} # User_Name : Channel
-sessions = {} # Channel : creator, start_time, session_id, session_id_generator, message, set_of_users
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
 logger_id = int(os.environ.get('Logger_channel_ID'))
 
+
 time_formatter = lambda time: "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
+
 
 _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
                discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
