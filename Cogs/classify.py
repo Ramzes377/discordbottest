@@ -73,18 +73,17 @@ class Channels_manager(commands.Cog):
         channel = self.get_private_channel(user)
         await channel.edit(name = _channel_name_helper(user), category = category)
 
-    @commands.Cog.listener()
+       @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        t = tuple(self.bot.db_cursor.execute("SELECT * FROM ChannelsINFO WHERE user_id = ?",
-                                             (after.id,)))
-        if t:
-            await self._sort_users_by_activity(after)
+        self.bot.db_cursor.execute("SELECT * FROM ChannelsINFO WHERE user_id = ?", (after.id,))
+        if self.bot.db_cursor.fetchone():
+            await self._sort_channels_by_activity(after)
 
     async def _transfer_channel(self, user):
         channel = self.get_private_channel(user)
         new_leader = channel.members[0]  # New leader of these channel
         self.bot.db_cursor.execute("UPDATE ChannelsINFO SET user_id = ? WHERE channel_id = ?",
-                                   (new_leader.id, channel.id))
+                                  (new_leader.id, channel.id))
         self.bot.db.commit()
         _permissions = {user: self.default_role_rights, new_leader: self.leader_role_rights}
         await channel.edit(name = _channel_name_helper(new_leader), overwrites = _permissions)
@@ -95,8 +94,7 @@ class Channels_manager(commands.Cog):
         channel = await user.guild.create_voice_channel(_channel_name_helper(user),
                                                         category=category,
                                                         overwrites=permissions)
-        self.bot.db_cursor.execute("INSERT INTO ChannelsINFO VALUES (?, ?)",
-                                   (user.id, channel.id))
+        self.bot.db_cursor.execute("INSERT INTO ChannelsINFO VALUES (?, ?)", (user.id, channel.id))
         self.bot.db.commit()
         await user.move_to(channel)
         return channel
@@ -110,8 +108,6 @@ class Channels_manager(commands.Cog):
             channel = self.bot.get_channel(*member_have_channel) #his channel
             if not channel:
                 self.bot.db_cursor.execute("DELETE FROM ChannelsINFO WHERE user_id = ?", (member.id,))
-        else:
-            member_have_channel = False
 
         if after.channel == self.bot.create_channel:  #user try to create channel
             if member_have_channel: #if channel already exist
@@ -146,8 +142,10 @@ class Channels_manager(commands.Cog):
         dt_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
         text_time = time_formatter(dt_time)
         embed_obj = discord.Embed(title=f"{creator.display_name} начал сессию {sess_id}",
-                                  description=f'\nВремя начала: {text_time}\nСессия активна...',
                                   color = discord.Color.green())
+        embed_obj.add_field(name = 'Время начала', value = f'{text_time}')
+        embed_obj.description = 'Сессия активна...'
+        embed_obj.set_thumbnail(url = 'https://cdn4.iconfinder.com/data/icons/flat-circle-content/800/circle-content-play-512.png')
         msg = await self.bot.logger_channel.send(embed = embed_obj)
 
         self.bot.db_cursor.execute("UPDATE SessionsID SET current_sessions_counter = ? WHERE current_day = ?",
@@ -156,7 +154,6 @@ class Channels_manager(commands.Cog):
                                    (channel.id, creator.id, day_of_year, sess_id, msg.id))
         self.bot.db_cursor.execute("INSERT INTO SessionsMembers VALUES (?, ?)",
                                    (channel.id, creator.id))
-
         self.bot.db.commit()
 
 
@@ -164,8 +161,11 @@ class Channels_manager(commands.Cog):
         self.bot.db_cursor.execute(
             "SELECT creator_id, start_day, session_id, message_id FROM SessionsINFO WHERE channel_id = ?",
             (channel.id,))
-
-        creator_id, start_day, session_id, message_id = self.bot.db_cursor.fetchone()
+        temp = self.bot.db_cursor.fetchone()
+        if temp:
+            creator_id, start_day, session_id, message_id = temp
+        else:
+            return
 
         self.bot.db_cursor.execute(
             "SELECT past_sessions_counter, current_sessions_counter FROM SessionsID WHERE current_day = ?",
@@ -195,6 +195,7 @@ class Channels_manager(commands.Cog):
             embed_obj.add_field(name='Время окончания', value=f'{time_formatter(end_time)}')
             embed_obj.add_field(name='Продолжительность', value=f"{str(sess_duration).split('.')[0]}")
             embed_obj.add_field(name='Участники', value=f"{', '.join(map(lambda id: f'<@{id[0]}>', users_ids))}")
+            embed_obj.set_thumbnail(url = 'https://cdn4.iconfinder.com/data/icons/flat-circle-content/800/circle-content-stop-512.png')
 
             await msg.edit(embed = embed_obj)
             self.bot.db_cursor.execute("DELETE FROM SessionsMembers WHERE channel_id = ?", (channel.id,))
@@ -204,8 +205,8 @@ class Channels_manager(commands.Cog):
         self.bot.db.commit()
 
     def get_private_channel(self, user):
-        t = tuple(self.bot.db_cursor.execute("SELECT channel_id FROM ChannelsINFO WHERE user_id = ?", (user.id,)))
-        return self.bot.get_channel(t[0][0])
+        self.bot.db_cursor.execute("SELECT channel_id FROM ChannelsINFO WHERE user_id = ?", (user.id,))
+        return self.bot.get_channel(self.bot.db_cursor.fetchone()[0])
             
             
 def setup(bot):
