@@ -73,7 +73,7 @@ class Channels_manager(commands.Cog):
         channel = self.get_private_channel(user)
         await channel.edit(name = _channel_name_helper(user), category = category)
 
-       @commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_member_update(self, before, after):
         self.bot.db_cursor.execute("SELECT * FROM ChannelsINFO WHERE user_id = ?", (after.id,))
         if self.bot.db_cursor.fetchone():
