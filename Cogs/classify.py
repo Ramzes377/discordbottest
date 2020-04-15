@@ -102,16 +102,15 @@ class Channels_manager(commands.Cog):
         return channel
 
 
-    @commands.Cog.listener()
+   @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        try:
-            member_have_channel = tuple(self.bot.db_cursor.execute(
-                "SELECT channel_id FROM ChannelsINFO WHERE user_id = ?",
-                (member.id,)))[0]
-            channel = self.bot.get_channel(member_have_channel[0]) #his channel
+        self.bot.db_cursor.execute("SELECT channel_id FROM ChannelsINFO WHERE user_id = ?", (member.id,))
+        member_have_channel = self.bot.db_cursor.fetchone()
+        if member_have_channel:
+            channel = self.bot.get_channel(*member_have_channel) #his channel
             if not channel:
                 self.bot.db_cursor.execute("DELETE FROM ChannelsINFO WHERE user_id = ?", (member.id,))
-        except IndexError:
+        else:
             member_have_channel = False
 
         if after.channel == self.bot.create_channel:  #user try to create channel
@@ -131,16 +130,16 @@ class Channels_manager(commands.Cog):
                     else: #if channel isn't empty just transfer channel
                         await self._transfer_channel(member)
             if after.channel:
-                self.bot.db_cursor.execute("INSERT INTO SessionsMembers VALUES (?, ?)",
-                                           (after.channel.id, member.id))
+                self.bot.db_cursor.execute("INSERT INTO SessionsMembers VALUES (?, ?)", (after.channel.id, member.id))
         self.bot.db.commit()
-        
+
 
     async def start_session_message(self, creator, channel):
         day_of_year, is_leap_year = session_id()
-        past_sessions_counter, current_sessions_counter = tuple(self.bot.db_cursor.execute(
+        self.bot.db_cursor.execute(
             "SELECT past_sessions_counter, current_sessions_counter FROM SessionsID WHERE current_day = ?",
-            (day_of_year,)))[0]
+            (day_of_year,))
+        past_sessions_counter, current_sessions_counter = self.bot.db_cursor.fetchone()
 
         sess_id = f'№ {1 + past_sessions_counter + current_sessions_counter} | {day_of_year}/{366 if is_leap_year else 365}'
 
@@ -162,13 +161,16 @@ class Channels_manager(commands.Cog):
 
 
     async def end_session_message(self, channel):
-        creator_id, start_day, session_id, message_id = tuple(self.bot.db_cursor.execute(
+        self.bot.db_cursor.execute(
             "SELECT creator_id, start_day, session_id, message_id FROM SessionsINFO WHERE channel_id = ?",
-            (channel.id,)))[0]
+            (channel.id,))
 
-        past_sessions_counter, current_sessions_counter = tuple(self.bot.db_cursor.execute(
+        creator_id, start_day, session_id, message_id = self.bot.db_cursor.fetchone()
+
+        self.bot.db_cursor.execute(
             "SELECT past_sessions_counter, current_sessions_counter FROM SessionsID WHERE current_day = ?",
-            (start_day,)))[0]
+            (start_day,))
+        past_sessions_counter, current_sessions_counter = self.bot.db_cursor.fetchone()
 
         self.bot.db_cursor.execute("UPDATE SessionsID SET current_sessions_counter = ? WHERE current_day = ?",
                                    (current_sessions_counter - 1, start_day))
@@ -184,16 +186,15 @@ class Channels_manager(commands.Cog):
             self.bot.db_cursor.execute("UPDATE SessionsID SET past_sessions_counter = ? WHERE current_day = ?",
                                        (past_sessions_counter + 1, start_day))
 
-            users_ids = tuple(self.bot.db_cursor.execute("SELECT member_id FROM SessionsMembers WHERE channel_id = ?",
+            users_ids = set(self.bot.db_cursor.execute("SELECT member_id FROM SessionsMembers WHERE channel_id = ?",
                                                          (channel.id,)))
 
-            embed_obj = discord.Embed(title=f"Сессия {session_id} окончена!",
-                                      color=discord.Color.red())
-            embed_obj.add_field(name='Создатель', value=f'<@{creator_id}>')
+            embed_obj = discord.Embed(title=f"Сессия {session_id} окончена!", color=discord.Color.red())
+            embed_obj.add_field(name = 'Создатель', value=f'<@{creator_id}>')
             embed_obj.add_field(name='Время начала', value=f'{time_formatter(start_time)}')
             embed_obj.add_field(name='Время окончания', value=f'{time_formatter(end_time)}')
             embed_obj.add_field(name='Продолжительность', value=f"{str(sess_duration).split('.')[0]}")
-            embed_obj.add_field(name='Участники', value=f"{', '.join(map(lambda id: f'<@{id[0]}>', set(users_ids)))}")
+            embed_obj.add_field(name='Участники', value=f"{', '.join(map(lambda id: f'<@{id[0]}>', users_ids))}")
 
             await msg.edit(embed = embed_obj)
             self.bot.db_cursor.execute("DELETE FROM SessionsMembers WHERE channel_id = ?", (channel.id,))
