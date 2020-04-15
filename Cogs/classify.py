@@ -102,7 +102,7 @@ class Channels_manager(commands.Cog):
         return channel
 
 
-   @commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         self.bot.db_cursor.execute("SELECT channel_id FROM ChannelsINFO WHERE user_id = ?", (member.id,))
         member_have_channel = self.bot.db_cursor.fetchone()
