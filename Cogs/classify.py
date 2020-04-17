@@ -64,6 +64,24 @@ class Channels_manager(commands.Cog):
 
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
         self.bot.logger_channel = self.bot.get_channel(logger_id)
+        
+        active_channels = self.bot.db_cursor.execute("SELECT channel_id FROM ChannelsINFO")
+        for chnls in active_channels:
+            channel_id = chnls[0]
+            channel = self.bot.get_channel(channel_id)
+            if channel:
+                if not channel.members:
+                    await self.end_session_message(channel)
+                    await channel.delete()
+                    self.bot.db_cursor.execute("DELETE FROM ChannelsINFO WHERE channel_id = ?", (channel_id,))
+                else:
+                    self.bot.db_cursor.execute("SELECT user_id FROM ChannelsINFO WHERE channel_id = ?", (channel_id, ))
+                    user_id = self.bot.db_cursor.fetchone()[0]
+                    user = self.bot.get_user(user_id)
+                    if not user in channel.members:
+                        await self._transfer_channel(user)
+            else:
+                self.bot.db_cursor.execute("DELETE FROM ChannelsINFO WHERE channel_id = ?", (channel_id,))
 
         await self.bot.change_presence(status = discord.Status.idle, activity = discord.Game('бога'))
         print(f'{type(self).__name__} starts')
