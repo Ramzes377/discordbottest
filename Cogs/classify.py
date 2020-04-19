@@ -65,6 +65,9 @@ class Channels_manager(commands.Cog):
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
         self.bot.logger_channel = self.bot.get_channel(logger_id)
         
+        self.bot.db_cursor.execute("DELETE FROM SessionsMembers")
+        self.bot.db.commit()
+        
         active_channels = self.bot.db_cursor.execute("SELECT channel_id FROM ChannelsINFO")
         for chnls in active_channels:
             channel_id = chnls[0]
@@ -139,8 +142,9 @@ class Channels_manager(commands.Cog):
                 if after.channel != channel: #user join to channel of another user from his channel
                     if not channel.members:  #handle his channel fate; if his channel is empty write end session message and delete channel
                         await self.end_session_message(channel)
-                        await channel.delete()
                         self.bot.db_cursor.execute("DELETE FROM ChannelsINFO WHERE user_id = ?", (member.id,))
+                        self.bot.db_cursor.execute("DELETE FROM SessionsMembers WHERE channel_id = ?", (channel.id,))
+                        await channel.delete()
                     else: #if channel isn't empty just transfer channel
                         await self._transfer_channel(member)
             if after.channel:
