@@ -17,6 +17,15 @@ _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_play
                4:                              int(os.environ.get('Category_custom')),
                0:                              int(os.environ.get('Category_idle'))}
 
+def is_leap_year(year):
+    return True if not year % 400 else False if not year % 100 else True if not year % 4 else False
+
+def session_id():
+    cur_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0) # GMT+3
+    start_of_year = datetime.datetime(cur_time.year, 1, 1, 0, 0, 0, 0)
+    delta = cur_time - start_of_year
+    return delta.days + 1, is_leap_year(cur_time.year)
+
 
 def _activity_name(member): #describe few activities to correct show
     if member.activity:
