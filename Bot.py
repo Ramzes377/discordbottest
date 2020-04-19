@@ -18,9 +18,11 @@ async def on_ready():
     bot.db_cursor = bot.db.cursor()
 
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS ChannelsINFO(user_id int, channel_id int)')
-    bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsID(current_day int, past_sessions_counter int, current_sessions_counter int)')
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsINFO(channel_id int, creator_id int, start_day int, session_id text, message_id int)')
-    bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsMembers(channel_id int, member_id)')
+    bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsID(current_day int, past_sessions_counter int, current_sessions_counter int)')
+    bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsMembers(channel_id int, member_id int)')
+    bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsActivities(channel_id int, associate_role int)')
+    bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS CreatedRoles(application_id int, role_id int)')
 
     admin = await bot.fetch_user(admin_id)
     await admin.send("I'am restarting!")
