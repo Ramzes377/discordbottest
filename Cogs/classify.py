@@ -3,6 +3,7 @@ from discord.ext import commands
 import os
 import re
 import datetime
+from random import randint as r
 
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
