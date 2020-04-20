@@ -213,7 +213,7 @@ class Channels_manager(commands.Cog):
                                   color = discord.Color.green())
         embed_obj.add_field(name = 'Время начала', value = f'{text_time}')
         embed_obj.description = 'Сессия активна...'
-        embed_obj.set_thumbnail(url = 'https://cdn4.iconfinder.com/data/icons/flat-circle-content/800/circle-content-play-512.png')
+        #embed_obj.set_thumbnail(url = 'https://cdn4.iconfinder.com/data/icons/flat-circle-content/800/circle-content-play-512.png')
         msg = await self.bot.logger_channel.send(embed = embed_obj)
 
         self.bot.db_cursor.execute("UPDATE SessionsID SET current_sessions_counter = ? WHERE current_day = ?",
@@ -250,7 +250,7 @@ class Channels_manager(commands.Cog):
 
         sess_duration = end_time - start_time
 
-        if sess_duration.seconds > 4:
+        if sess_duration.seconds > 120:
             self.bot.db_cursor.execute("UPDATE SessionsID SET past_sessions_counter = ? WHERE current_day = ?",
                                        (past_sessions_counter + 1, start_day))
 
