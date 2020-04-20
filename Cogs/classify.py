@@ -123,7 +123,8 @@ class Channels_manager(commands.Cog):
             role = await guild.create_role(name=role_name,
                                            permissions=guild.default_role.permissions,
                                            colour=discord.Colour(1).from_rgb(r(70, 255), r(70, 255), r(70, 255)),
-                                           hoist=True)
+                                           hoist=True,
+                                           mentionable = True)
             self.bot.db_cursor.execute("INSERT INTO CreatedRoles VALUES (?, ?)", (app_id, role.id))
             self.bot.db.commit()
             await after.add_roles(role)
