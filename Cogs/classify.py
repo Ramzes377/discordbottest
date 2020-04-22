@@ -333,7 +333,7 @@ class Channels_manager(commands.Cog):
 
         sess_duration = end_time - start_time
 
-        if sess_duration.seconds > 4:
+        if sess_duration.seconds > 120:
             self.bot.db_cursor.execute("UPDATE SessionsID SET past_sessions_counter = ? WHERE current_day = ?",
                                        (past_sessions_counter + 1, start_day))
 
