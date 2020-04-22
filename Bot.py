@@ -23,6 +23,7 @@ async def on_ready():
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsMembers(channel_id int, member_id int)')
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsActivities(channel_id int, associate_role int)')
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS CreatedRoles(application_id int, role_id int)')
+    bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS ActivitiesINFO(application_id int,  icon_url text, name text)')
 
     admin = await bot.fetch_user(admin_id)
     await admin.send("I'am restarting!")
