@@ -8,6 +8,7 @@ from random import randint as r
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
 logger_id = int(os.environ.get('Logger_channel_ID'))
+role_request_id = int(os.environ.get('Role_request')
 
 _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
                discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
@@ -84,7 +85,7 @@ class Channels_manager(commands.Cog):
                 self.bot.db_cursor.execute("DELETE FROM ChannelsINFO WHERE channel_id = ?", (channel_id,))
             self.bot.db.commit()
 
-        role_request = self.bot.get_channel(int(os.environ.get('Role_request'))
+        role_request = self.bot.get_channel(role_request_id)
         story = await role_request.history(limit=3).flatten()
         if len(story) > 0:
             self.msg = story[0]
