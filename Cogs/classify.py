@@ -90,7 +90,7 @@ class Channels_manager(commands.Cog):
         if len(story) > 0:
             self.msg = story[0]
         else:
-            self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
+            self.msg = await role_request.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
 
         #await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="help to create your own channel"))
         print(f'{type(self).__name__} starts')
