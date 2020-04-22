@@ -8,7 +8,7 @@ from random import randint as r
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
 logger_id = int(os.environ.get('Logger_channel_ID'))
-role_request_id = int(os.environ.get('Role_request')
+role_request_id = int(os.environ.get('Role_request'))
 
 _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
                discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
