@@ -96,7 +96,7 @@ class Channels_manager(commands.Cog):
         #await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="help to create your own channel"))
         print(f'{type(self).__name__} starts')
 
-    async def _edit_role_giver_message(self, emoji_id):
+     async def _edit_role_giver_message(self, emoji_id):
         emoji = self.bot.get_emoji(emoji_id)
         await self.msg.add_reaction(emoji)
 
@@ -154,9 +154,9 @@ class Channels_manager(commands.Cog):
     async def logging_activities(self, after):
         # Session activities logging
         try:
-            app_id = after.activity.application_id
+            app_id, is_real = after.activity.application_id, True
         except:
-            app_id = abs(hash(after.activity.name))
+            app_id, is_real = abs(hash(after.activity.name)), False
         self.bot.db_cursor.execute(f"SELECT * FROM SessionsMembers WHERE member_id = {after.id}")
         #recognize that's these user member of session
         is_user_session_member = self.bot.db_cursor.fetchall() #all of his sessions
@@ -173,33 +173,35 @@ class Channels_manager(commands.Cog):
                 self.bot.db_cursor.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
                 associate_role = self.bot.db_cursor.fetchone()[0]
                 self.bot.db_cursor.execute("INSERT INTO SessionsActivities VALUES (?, ?)", (channel_id, associate_role))
-                await self.update_message_icon(app_id, channel_id)
+                if is_real:
+                    await self.update_message_icon(app_id, channel_id)
         self.bot.db.commit()
 
     async def _create_activity_emoji(self, guild, app_id):
         self.bot.db_cursor.execute(f'SELECT name, icon_url FROM ActivitiesINFO WHERE application_id = {app_id}')
-
         name, thumbnail_url = self.bot.db_cursor.fetchone()
-
-        name = name.lower().replace(' ', '')
+        if len(name) > 8:
+            short_name = ''
+            for word in re.split(r'\W', name):
+                short_name += word[:1] if word else ' '
+            name = short_name.lower().replace(' ', '')
+        else:
+            name = name.lower().replace(' ', '')
         thumbnail_url = thumbnail_url[:-10]
-
         async with aiohttp.ClientSession() as session:
             async with session.get(thumbnail_url) as resp:
                 content = await resp.read()
-
         emoji = await guild.create_custom_emoji(name=name, image=content)
 
-        try:
-            self.bot.db_cursor.execute("INSERT INTO CreatedEmoji VALUES (?, ?)", (app_id, emoji.id))
-            self.bot.db.commit()
-            await self._edit_role_giver_message(emoji.id)
-        except:
-            pass
+        self.bot.db_cursor.execute("INSERT INTO CreatedEmoji VALUES (?, ?)", (app_id, emoji.id))
+        self.bot.db.commit()
+        await self._edit_role_giver_message(emoji.id)
 
     async def link_roles(self, after):
-        app_id = after.activity.application_id
-
+        try:
+            app_id, is_real = after.activity.application_id, True
+        except:
+            app_id, is_real = abs(hash(after.activity.name)), False
         role_name = after.activity.name
         guild = after.guild
         self.bot.db_cursor.execute(f"SELECT * FROM CreatedRoles WHERE application_id = {app_id}")
@@ -208,11 +210,6 @@ class Channels_manager(commands.Cog):
             role = guild.get_role(created_role[1])  # get role
             if not role in after.roles:  # check user have these role
                 await after.add_roles(role)
-            self.bot.db_cursor.execute(f"SELECT * FROM CreatedEmoji WHERE application_id = {app_id}")
-            is_emoji_created = self.bot.db_cursor.fetchone()
-            if not is_emoji_created:
-                await self._create_activity_emoji(guild, app_id)
-
         else:
             role = await guild.create_role(name=role_name,
                                            permissions=guild.default_role.permissions,
@@ -222,7 +219,8 @@ class Channels_manager(commands.Cog):
             self.bot.db_cursor.execute("INSERT INTO CreatedRoles VALUES (?, ?)", (app_id, role.id))
             self.bot.db.commit()
             await after.add_roles(role)
-            await self._create_activity_emoji(guild, app_id)
+            if is_real:
+                await self._create_activity_emoji(guild, app_id)
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
@@ -232,7 +230,6 @@ class Channels_manager(commands.Cog):
 
         if after.activity and after.activity.type == discord.ActivityType.playing:
             await self.link_roles(after)
-
             await self.logging_activities(after)
 
     async def _transfer_channel(self, user):
@@ -385,4 +382,3 @@ class Channels_manager(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Channels_manager(bot))
-
