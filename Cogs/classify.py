@@ -96,7 +96,7 @@ class Channels_manager(commands.Cog):
         #await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="help to create your own channel"))
         print(f'{type(self).__name__} starts')
 
-     async def _edit_role_giver_message(self, emoji_id):
+    async def _edit_role_giver_message(self, emoji_id):
         emoji = self.bot.get_emoji(emoji_id)
         await self.msg.add_reaction(emoji)
 
