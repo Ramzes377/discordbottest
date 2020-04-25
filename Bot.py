@@ -7,6 +7,14 @@ admin_id = os.environ.get('Admin_ID')
 bot = commands.Bot(command_prefix = '!')
 
 
+name = os.environ.get('db_name')
+user = os.environ.get('db_user')
+password = os.environ.get('db_password')
+host = os.environ.get('db_host')
+
+dsn = f'dbname={name} user={user} password={password} host={host}'
+
+
 for filename in os.listdir('./Cogs'):
     if filename.endswith('.py'):
         bot.load_extension(f'Cogs.{filename[:-3]}')
@@ -14,8 +22,7 @@ for filename in os.listdir('./Cogs'):
 
 @bot.event
 async def on_ready():
-    bot.db = sqlite3.connect('Users_and_Channels.db')
-    bot.db_cursor = bot.db.cursor()
+    bot.db = await aiopg.create_pool(dsn)
 
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS ChannelsINFO(user_id int, channel_id int)')
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS SessionsINFO(channel_id int, creator_id int, start_day int, session_id text, message_id int)')
