@@ -1,6 +1,6 @@
 from discord.ext import commands
 import os
-import sqlite3
+import aiopg
 
 admin_id = os.environ.get('Admin_ID')
 
