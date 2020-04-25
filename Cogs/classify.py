@@ -61,12 +61,13 @@ class Channels_manager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await asyncio.sleep(3)
+        await asyncio.sleep(10)
         for cat in _categories:
             _categories[cat] = self.bot.get_channel(_categories[cat])  # getting categories from their IDs
 
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
         self.bot.logger_channel = self.bot.get_channel(logger_id)
+        
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
                 active_channels = await cur.execute("SELECT channel_id FROM ChannelsINFO")
