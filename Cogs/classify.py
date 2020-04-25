@@ -348,7 +348,7 @@ class Channels_manager(commands.Cog):
 
                 sess_duration = end_time - start_time
 
-                if sess_duration.seconds > 4:
+                if sess_duration.seconds > 120:
                     await cur.execute(f"UPDATE SessionsID SET past_sessions_counter = {past_sessions_counter + 1} WHERE current_day = {start_day}")
                     await cur.execute(f"SELECT member_id FROM SessionsMembers WHERE channel_id = {channel.id}")
                     temp = await cur.fetchall()
