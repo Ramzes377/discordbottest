@@ -33,17 +33,7 @@ async def on_ready():
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS ActivitiesINFO(application_id int,  icon_url text, name text)')
     bot.db_cursor.execute('CREATE TABLE IF NOT EXISTS CreatedEmoji(application_id int UNIQUE, emoji_id int)')
 
-    admin = await bot.fetch_user(admin_id)
-    await admin.send("I'am restarting!")
     print('Bot have been started!')
-
-@bot.event
-async def on_error(event, *args, **kwargs):
-    traceback = 'Error in event ' + str(event) + '\n'
-    traceback += 'Args: ' + ' '.join(map(str, args)) + '\n'
-    traceback += 'Kwargs: ' + ' '.join(map(lambda key, value: str(key) + ' - ' + str(value), kwargs.items()))
-    admin = await bot.fetch_user(admin_id)
-    await admin.send(traceback)
 
 token = os.environ.get('TOKEN')
 bot.run(str(token))
