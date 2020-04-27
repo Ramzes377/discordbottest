@@ -371,8 +371,6 @@ class Channels_manager(commands.Cog):
                     embed_obj.set_footer(text=creator.display_name + " - Создатель сессии", icon_url=creator.avatar_url)
 
                     await msg.edit(embed = embed_obj)
-                    await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel.id}")
-                    await cur.execute(f"DELETE FROM SessionsActivities WHERE channel_id = {channel.id}")
 
                     for role_id in roles_ids:
                         await cur.execute(f"SELECT application_id FROM CreatedRoles WHERE role_id = {role_id[0]}")
@@ -384,6 +382,10 @@ class Channels_manager(commands.Cog):
                             await msg.add_reaction(emoji)
                 else:
                     await msg.delete()
+                                        
+                await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel.id}")
+                await cur.execute(f"DELETE FROM SessionsActivities WHERE channel_id = {channel.id}")
+                await cur.execute(f"DELETE FROM SessionsINFO WHERE channel_id = {channel.id}")                        
 
     async def get_private_channel(self, user):
         async with self.bot.db.acquire() as conn:
