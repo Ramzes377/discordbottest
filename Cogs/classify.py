@@ -95,6 +95,13 @@ class Channels_manager(commands.Cog):
         story = await channel.history(limit=3).flatten()
         if len(story) > 0:
             self.msg = story[0]
+            guild = self.msg.guild
+            for reaction in self.msg.reactions:
+                if not reaction.emoji in guild.emojis:
+                    await self.msg.remove_reaction(reaction.emoji, guild.get_member(self.bot.user.id))
+                    async with self.bot.db.acquire() as conn:
+                        async with conn.cursor() as cur:
+                            await cur.execute(f"DELETE FROM CreatedEmoji WHERE emoji_id = {reaction.emoji.id}")
         else:
             self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
 
