@@ -7,12 +7,14 @@ admin_id = os.environ.get('Admin_ID')
 bot = commands.Bot(command_prefix = '!')
 
 
-name = os.environ.get('db_name')
-user = os.environ.get('db_user')
-password = os.environ.get('db_password')
-host = os.environ.get('db_host')
+database_URL = os.environ.get('DATABASE_URL')
 
-dsn = f'dbname={name} user={user} password={password} host={host}'
+user_data, db_data = database_URL[11:].split('@')
+
+user, password = user_data.split(':')
+db_host, db_name = db_data.split('/')
+
+dsn = f'dbname={db_name} user={user} password={password} host={db_host[:-5]}'
 
 
 for filename in os.listdir('./Cogs'):
