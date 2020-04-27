@@ -6,6 +6,8 @@ import datetime
 from random import randint as r
 import aiohttp
 import asyncio
+from PIL import ImageStat, Image
+from io import BytesIO
 
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
@@ -207,8 +209,8 @@ class Channels_manager(commands.Cog):
                 emoji = await guild.create_custom_emoji(name=name, image=content)
 
                 await cur.execute(f"INSERT INTO CreatedEmoji (application_id, emoji_id) VALUES ({app_id}, {emoji.id})")
-
                 await self._edit_role_giver_message(emoji.id)
+                return ImageStat.Stat(Image.open(BytesIO(content))).median[:-1]
 
     async def link_roles(self, after):
         try:
@@ -226,15 +228,17 @@ class Channels_manager(commands.Cog):
                     if not role in after.roles:  # check user have these role
                         await after.add_roles(role)
                 else:
+                    if is_real:
+                        color = await self._create_activity_emoji(guild, app_id)
+                    else:
+                        color = r(70, 255), r(70, 255), r(70, 255)
                     role = await guild.create_role(name=role_name,
                                                    permissions=guild.default_role.permissions,
-                                                   colour=discord.Colour(1).from_rgb(r(70, 255), r(70, 255), r(70, 255)),
+                                                   colour=discord.Colour(1).from_rgb(color),
                                                    hoist=True,
                                                    mentionable = True)
                     await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
                     await after.add_roles(role)
-                    if is_real:
-                        await self._create_activity_emoji(guild, app_id)
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
