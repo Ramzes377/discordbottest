@@ -2,3 +2,4 @@ discord.py
 datetime
 aiohttp
 aiopg
+PIL
