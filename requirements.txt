@@ -3,4 +3,4 @@ datetime
 aiohttp
 aiopg
 sklearn
-opencv
+opencv-python
