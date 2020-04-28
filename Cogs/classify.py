@@ -32,7 +32,7 @@ def session_id():
     delta = cur_time - start_of_year
     return delta.days + 1, is_leap_year(cur_time.year)
   
- def DominantColors(img, clusters):
+def DominantColors(img, clusters):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.reshape((img.shape[0] * img.shape[1], 3))
     kmeans = KMeans(n_clusters=clusters)
