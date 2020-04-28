@@ -5,3 +5,4 @@ aiopg
 sklearn
 opencv-python
 opencv-contrib-python
+opencv-python-headless
