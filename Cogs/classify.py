@@ -6,8 +6,10 @@ import datetime
 from random import randint as r
 import aiohttp
 import asyncio
-from PIL import ImageStat, Image
-from io import BytesIO
+import cv2
+from sklearn.cluster import KMeans
+import numpy as np
+
 
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
@@ -29,6 +31,14 @@ def session_id():
     start_of_year = datetime.datetime(cur_time.year, 1, 1, 0, 0, 0, 0)
     delta = cur_time - start_of_year
     return delta.days + 1, is_leap_year(cur_time.year)
+  
+ def DominantColors(img, clusters):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = img.reshape((img.shape[0] * img.shape[1], 3))
+    kmeans = KMeans(n_clusters=clusters)
+    kmeans.fit(img)
+    colors = kmeans.cluster_centers_
+    return colors.astype(int)
 
 def _activity_name(member): #describe few activities to correct show
     if member.activity:
@@ -211,7 +221,8 @@ class Channels_manager(commands.Cog):
 
                 await cur.execute(f"INSERT INTO CreatedEmoji (application_id, emoji_id) VALUES ({app_id}, {emoji.id})")
                 await self._edit_role_giver_message(emoji.id)
-                return ImageStat.Stat(Image.open(BytesIO(content))).median[:-1]
+                img_np = cv2.imdecode(np.frombuffer(content, dtype='uint8'), 1)
+                return DominantColors(img_np, 2)[0]
 
     async def link_roles(self, after):
         try:
