@@ -3,4 +3,3 @@ datetime
 aiohttp
 aiopg
 sklearn
-cv2
