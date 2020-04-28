@@ -31,7 +31,7 @@ def session_id():
     start_of_year = datetime.datetime(cur_time.year, 1, 1, 0, 0, 0, 0)
     delta = cur_time - start_of_year
     return delta.days + 1, is_leap_year(cur_time.year)
-  
+
 def DominantColors(img, clusters):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.reshape((img.shape[0] * img.shape[1], 3))
