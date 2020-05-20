@@ -102,9 +102,9 @@ class Channels_manager(commands.Cog):
                             await cur.execute(f"DELETE FROM ChannelsINFO WHERE channel_id = {channel_id}")
 
         channel = self.bot.get_channel(role_request_id)
-        story = await channel.history(limit=3).flatten()
+        story = await channel.history(limit=100).flatten()
         if len(story) > 0:
-            self.msg = story[0]
+            self.msg = story[-1]
             guild = self.msg.guild
             for reaction in self.msg.reactions:
                 if not reaction.emoji in guild.emojis:
@@ -120,7 +120,11 @@ class Channels_manager(commands.Cog):
 
     async def _edit_role_giver_message(self, emoji_id):
         emoji = self.bot.get_emoji(emoji_id)
-        await self.msg.add_reaction(emoji)
+        try:
+            await self.msg.add_reaction(emoji)
+        except discord.errors.Forbidde:
+            channel = self.msg.channel
+            self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
