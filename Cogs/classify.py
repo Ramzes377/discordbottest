@@ -102,9 +102,9 @@ class Channels_manager(commands.Cog):
                             await cur.execute(f"DELETE FROM ChannelsINFO WHERE channel_id = {channel_id}")
 
         channel = self.bot.get_channel(role_request_id)
-        story = await channel.history(limit=100).flatten()
+        story = await channel.history(limit=None).flatten()
         if len(story) > 0:
-            self.msg = story[-1]
+            self.msg = story[0]
             guild = self.msg.guild
             for reaction in self.msg.reactions:
                 if not reaction.emoji in guild.emojis:
