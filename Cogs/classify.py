@@ -125,6 +125,7 @@ class Channels_manager(commands.Cog):
         except discord.errors.Forbidden:
             channel = self.msg.channel
             self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
+            await self.msg.add_reaction(emoji)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
