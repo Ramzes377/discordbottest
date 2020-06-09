@@ -85,15 +85,16 @@ class Channels_manager(commands.Cog):
         
         guild = self.bot.create_channel.guild
         roles = guild.roles
-
+        sorted_roles = sorted(roles, key=lambda role: len(role.members))
+        
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
-                for role in roles:
+                for role in sorted_roles:
                     if role.hoist:
                         print(role, len(role.members))
                         await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
                         if await cur.fetchone():
-                            await role.edit(position =  len(role.members))
+                            await role.edit(position = len(role.members))
         
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
