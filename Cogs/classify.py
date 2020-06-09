@@ -23,6 +23,8 @@ _categories = {discord.ActivityType.playing:   int(os.environ.get('Category_play
 
 time_formatter = lambda time: "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
 
+_hash = lambda string: sum(pos * ord(val) for pos, val in enumerate(string, start = 1))
+
 def is_leap_year(year):
     return True if not year % 400 else False if not year % 100 else True if not year % 4 else False
 
@@ -233,7 +235,7 @@ class Channels_manager(commands.Cog):
         try:
             app_id, is_real = after.activity.application_id, True
         except:
-            app_id, is_real = abs(hash(after.activity.name)), False
+            app_id, is_real = _hash(after.activity.name), False
         role_name = after.activity.name
         guild = after.guild
         async with self.bot.db.acquire() as conn:
