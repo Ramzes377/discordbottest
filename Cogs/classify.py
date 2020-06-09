@@ -91,7 +91,6 @@ class Channels_manager(commands.Cog):
             async with conn.cursor() as cur:
                 for role in sorted_roles:
                     if role.hoist:
-                        print(role, len(role.members))
                         await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
                         if await cur.fetchone():
                             await role.edit(position = len(role.members) if len(role.members) > 0 else 1)
