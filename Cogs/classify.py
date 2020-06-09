@@ -83,7 +83,7 @@ class Channels_manager(commands.Cog):
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
         self.bot.logger_channel = self.bot.get_channel(logger_id)
         
-        guild = self.bot.create_channe.guild
+        guild = self.bot.create_channel.guild
         roles = guild.roles
 
         async with self.bot.db.acquire() as conn:
