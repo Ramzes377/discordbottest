@@ -88,7 +88,7 @@ class Channels_manager(commands.Cog):
 
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
-                async for role in roles:
+                for role in roles:
                     if role.hoist:
                         print(role, role.position)
                         await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
