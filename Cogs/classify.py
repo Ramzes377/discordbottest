@@ -83,6 +83,18 @@ class Channels_manager(commands.Cog):
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
         self.bot.logger_channel = self.bot.get_channel(logger_id)
         
+        guild = self.bot.create_channe.guild
+        roles = guild.roles
+
+        async with self.bot.db.acquire() as conn:
+            async with conn.cursor() as cur:
+                async for role in roles:
+                    if role.hoist:
+                        print(role, role.position)
+                        await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
+                        if await cur.fetchone():
+                            await role.edit(position = len(role.members))
+        
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
                 active_channels = await cur.execute("SELECT channel_id FROM ChannelsINFO")
