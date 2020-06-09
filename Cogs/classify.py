@@ -88,16 +88,12 @@ class Channels_manager(commands.Cog):
 
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
-                await cur.execute(f"SELECT COUNT(1) FROM CreatedRoles")
-                bot_roles_num = await cur.fetchone()
-                bot_roles_num = bot_roles_num[0]
                 for role in roles:
                     if role.hoist:
                         print(role, len(role.members))
                         await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
                         if await cur.fetchone():
-                            pos = len(role.members) 
-                            await role.edit(position =  bot_roles_num - pos)
+                            await role.edit(position =  len(role.members))
         
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
