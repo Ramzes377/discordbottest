@@ -94,7 +94,7 @@ class Channels_manager(commands.Cog):
                         print(role, len(role.members))
                         await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
                         if await cur.fetchone():
-                            await role.edit(position = len(role.members))
+                            await role.edit(position = len(role.members) if len(role.members) > 0 else 1)
         
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
