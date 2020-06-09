@@ -85,7 +85,7 @@ class Channels_manager(commands.Cog):
         
         guild = self.bot.create_channel.guild
         roles = guild.roles
-        sorted_roles = sorted(roles, key=lambda role: len(role.members))
+        sorted_roles = sorted(roles, key=lambda role: len(role.members), reverse = True)
         
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
