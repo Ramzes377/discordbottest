@@ -189,7 +189,7 @@ class Channels_manager(commands.Cog):
             img_np = cv2.imdecode(np.frombuffer(content, dtype='uint8'), 1)
             return DominantColors(img_np, 2)[0]
 
-     async def link_roles(self, after):
+    async def link_roles(self, after):
         try:
             app_id, is_real = after.activity.application_id, True
         except:
@@ -217,7 +217,7 @@ class Channels_manager(commands.Cog):
                 await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
                 await after.add_roles(role)
 
-     async def logging_activities(self, user):
+    async def logging_activities(self, user):
         # Session activities logging
         try:
             app_id, is_real = user.activity.application_id, True
@@ -433,8 +433,8 @@ class Channels_manager(commands.Cog):
         return self.bot.get_channel(*channel_id)
 
                                     
-     @asynccontextmanager
-     async def get_connection(self):
+    @asynccontextmanager
+    async def get_connection(self):
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
                 yield cur
