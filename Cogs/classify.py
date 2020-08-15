@@ -232,7 +232,8 @@ class Channels_manager(commands.Cog):
             async with conn.cursor() as cur:
                 await cur.execute(f'SELECT name, icon_url FROM ActivitiesINFO WHERE application_id = {app_id}')
                 name, thumbnail_url = await cur.fetchone()
-                name = re.compile('[^a-zA-Z ]').sub('', name).replace(" ", "")
+                #name = re.compile('[^a-zA-Z ]').sub('', name).replace(" ", "")
+                name = name.replace(" ", "")[:32]
                 thumbnail_url = thumbnail_url[:-10]
                 async with aiohttp.ClientSession() as session:
                     async with session.get(thumbnail_url) as resp:
