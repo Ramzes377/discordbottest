@@ -7,7 +7,7 @@ import aiohttp
 from sklearn.cluster import KMeans
 import numpy as np
 import cv2
-from contextlib import asynccontextmanager
+import asyncio_extras
 import hashlib
 
 
@@ -433,7 +433,7 @@ class Channels_manager(commands.Cog):
         return self.bot.get_channel(*channel_id)
 
                                     
-    @asynccontextmanager
+    @asyncio_extras.async_contextmanager
     async def get_connection(self):
         async with self.bot.db.acquire() as conn:
             async with conn.cursor() as cur:
