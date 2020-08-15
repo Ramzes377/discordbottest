@@ -4,3 +4,4 @@ aiohttp
 aiopg
 sklearn
 opencv-contrib-python-headless
+contextlib
