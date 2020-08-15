@@ -81,7 +81,7 @@ class Channels_manager(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         await asyncio.sleep(3)
-        for cat in _categories:
+        for cat in categories:
             categories[cat] = self.bot.get_channel(categories[cat])  # getting categories from their IDs
 
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
