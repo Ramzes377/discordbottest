@@ -19,7 +19,7 @@ role_request_id = int(os.environ.get('Role_request'))
 
 categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
                discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
-               4:                              int(os.environ.get('Category_custom')),
+               discord.ActivityType.custom:   int(os.environ.get('Category_custom')),
                0:                              int(os.environ.get('Category_idle'))}
 
 def get_category(user):
