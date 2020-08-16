@@ -173,7 +173,6 @@ class Channels_manager(commands.Cog):
         channel_name = get_activity_name(user)
         category = get_category(user)
         await channel.edit(name=channel_name, category=category) 
-        await self.five_min_timer()
                         
     async def _create_activity_emoji(self, guild, app_id):
         async with self.get_connection() as cur:
@@ -364,7 +363,7 @@ class Channels_manager(commands.Cog):
             if after.activity and after.activity.type == discord.ActivityType.playing:
                 await self.link_roles(after)
                 await self.logging_activities(after)
-            await asyncio.sleep(300)
+            await self.five_min_timer()
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
