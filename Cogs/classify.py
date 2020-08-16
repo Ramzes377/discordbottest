@@ -141,7 +141,7 @@ class Channels_manager(commands.Cog):
         else:
             self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
 
-        #await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="help to create your own channel"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" за каналами"))
         print(f'{type(self).__name__} starts')
         
     async def _transfer_channel(self, user):
