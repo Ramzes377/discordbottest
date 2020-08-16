@@ -362,6 +362,7 @@ class Channels_manager(commands.Cog):
             if after.activity and after.activity.type == discord.ActivityType.playing:
                 await self.link_roles(after)
                 await self.logging_activities(after)
+            await asyncio.sleep(300)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
