@@ -45,8 +45,10 @@ class Commands(commands.Cog):
 
         if len(requested_games) == 0:
             await self.send_removable_message(ctx, 'Отсутствуют упоминания игровых ролей! Введите !help activity', 20)
+            await ctx.message.delete()
             return
 
+        sended_messages = []
         async with self.get_connection() as cur:
             for role in requested_games:
                 await cur.execute(f"SELECT application_id FROM CreatedRoles WHERE role_id = {role.id}")
@@ -56,9 +58,9 @@ class Commands(commands.Cog):
                     seconds = await cur.fetchone()  # it's created role
                     total_time = datetime.timedelta(seconds=seconds[0])
 
-                    embed_obj = discord.Embed(title=f"В игре {role.name} вы провели:",
-                                              color=role.color)
-                    embed_obj.description = str(total_time).split('.')[0]
+                    embed_obj = discord.Embed(title=f"Обработан ваш запрос по игре {role.name}", color=role.color)
+                    embed_obj.add_field(name='В игре вы провели', value=f"{str(total_time).split('.')[0]}", inline=False)
+                    embed_obj.description = 'Это сообщение автоматически удалится через минуту'
 
                     await cur.execute(f'SELECT icon_url FROM ActivitiesINFO WHERE application_id = {app_id[0]}')
                     thumbnail_url = await cur.fetchone()
@@ -66,11 +68,15 @@ class Commands(commands.Cog):
                         embed_obj.set_thumbnail(url=thumbnail_url[0])
 
                     bot = channel.guild.get_member(self.bot.user.id)
-                    embed_obj.set_footer(text=bot.display_name, icon_url=bot.avatar_url)
+                    embed_obj.set_footer(text='Великий бот - ' + bot.display_name, icon_url=bot.avatar_url)
 
-                    message = await member.send(embed = embed_obj)
-                    await asyncio.sleep(30)
-                    await message.delete()
+                    message = await member.send(embed=embed_obj)
+                    sended_messages.append(message)
+
+        await asyncio.sleep(60)
+        for message in sended_messages:
+            await message.delete()
+        await ctx.message.delete()
 
 
     @commands.command()
