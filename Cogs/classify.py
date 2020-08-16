@@ -51,9 +51,8 @@ def DominantColors(img, clusters):
 def get_activity_name(user): #describe few activities to correct show
     if user.activity:
         activity_title = user.activity.name
-        if len(activity_title) > 8:
-            #short_name = ''.join([word[:1] for word in re.split(r'\W', activity_name)])
-            short_name = re.compile('[^a-zA-Z0-9 +]').sub('', activity_title)[:8] + '..'
+        if len(activity_title) > 6:
+            short_name = re.compile('[^a-zA-Z0-9 +]').sub('', activity_title)[:6] + '..'
             return f"[{short_name}] {user.display_name}'s channel"
         return f"[{activity_title}] {user.display_name}'s channel"
     return f"{user.display_name}'s channel"
@@ -62,6 +61,7 @@ def get_activity_name(user): #describe few activities to correct show
 class Channels_manager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self._is_five_mins_pass = True
         self.leader_role_rights = discord.PermissionOverwrite(kick_members = True,
                                                             mute_members = True,
                                                             deafen_members = True,
@@ -172,7 +172,8 @@ class Channels_manager(commands.Cog):
         channel = await self.get_user_channel(user.id)
         channel_name = get_activity_name(user)
         category = get_category(user)
-        await channel.edit(name=channel_name, category=category)                       
+        await channel.edit(name=channel_name, category=category) 
+        await self.five_min_timer()
                         
     async def _create_activity_emoji(self, guild, app_id):
         async with self.get_connection() as cur:
@@ -358,7 +359,8 @@ class Channels_manager(commands.Cog):
             await cur.execute(f"SELECT channel_id FROM ChannelsINFO WHERE user_id = {after.id}")
             channel_info = await cur.fetchone()
         if channel_info:
-            await self._sort_channels_by_activity(after)
+            if self._is_five_mins_pass:
+                await self._sort_channels_by_activity(after)
             if after.activity and after.activity.type == discord.ActivityType.playing:
                 await self.link_roles(after)
                 await self.logging_activities(after)
@@ -427,13 +429,17 @@ class Channels_manager(commands.Cog):
                         role = guild.get_role(associated_role[0])
                         await member.remove_roles(role)
 
-
+                                    
+    async def five_min_timer(self):
+        self._is_five_mins_pass = False
+        await asyncio.sleep(300)
+        self._is_five_mins_pass = True
+                      
     async def get_user_channel(self, user_id):
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT channel_id FROM ChannelsINFO WHERE user_id = {user_id}")
             channel_id = await cur.fetchone()
         return self.bot.get_channel(*channel_id)
-
                                     
     @asyncio_extras.async_contextmanager
     async def get_connection(self):
