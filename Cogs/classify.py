@@ -27,6 +27,23 @@ def get_category(user):
         return categories[user.activity.type]
     return categories[0]
 
+ 
+def get_activity_name(user): #describe few activities to correct show
+    if user.activity:
+        activity_title = user.activity.name
+        if len(activity_title) > 6:
+            short_name = re.compile('[^a-zA-Z0-9 +]').sub('', activity_title)[:6] + '..'
+            return f"[{short_name}] {user.display_name}'s channel"
+        return f"[{activity_title}] {user.display_name}'s channel"
+    return f"{user.display_name}'s channel"
+  
+def get_app_id(activity_interval):
+    try:
+        app_id, is_real = activity_interval.activity.application_id, True
+    except AttributeError:
+        app_id, is_real = _hash(activity_interval.activity.name), False
+    return app_id, is_real 
+  
 time_formatter = lambda time: "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, time.minute, time.second, time.day, time.month,  time.year)
 
 _hash = lambda string: int(str(hashlib.sha3_224(string.encode(encoding='utf8')).hexdigest()), 16) % 10**10
@@ -47,16 +64,6 @@ def DominantColors(img, clusters):
     kmeans.fit(img)
     colors = kmeans.cluster_centers_
     return colors.astype(int)
-
-def get_activity_name(user): #describe few activities to correct show
-    if user.activity:
-        activity_title = user.activity.name
-        if len(activity_title) > 6:
-            short_name = re.compile('[^a-zA-Z0-9 +]').sub('', activity_title)[:6] + '..'
-            return f"[{short_name}] {user.display_name}'s channel"
-        return f"[{activity_title}] {user.display_name}'s channel"
-    return f"{user.display_name}'s channel"
-
 
 class Channels_manager(commands.Cog):
     def __init__(self, bot):
@@ -191,10 +198,7 @@ class Channels_manager(commands.Cog):
             return DominantColors(img_np, 2)[0]
 
     async def link_roles(self, after):
-        try:
-            app_id, is_real = after.activity.application_id, True
-        except:
-            app_id, is_real = _hash(after.activity.name), False
+        app_id, is_real = get_app_id(after)
         role_name = after.activity.name
         guild = after.guild
 
@@ -220,10 +224,7 @@ class Channels_manager(commands.Cog):
 
     async def logging_activities(self, user):
         # Session activities logging
-        try:
-            app_id, is_real = user.activity.application_id, True
-        except:
-            app_id, is_real = _hash(user.activity.name), False
+        app_id, is_real = get_app_id(user)
 
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT * FROM SessionsMembers WHERE member_id = {user.id}")
@@ -284,16 +285,10 @@ class Channels_manager(commands.Cog):
             await cur.execute(f"UPDATE SessionsID SET current_sessions_counter = {current_sessions_counter + 1} WHERE current_day = {day_of_year}")
             await cur.execute(f"INSERT INTO SessionsINFO (channel_id, creator_id, start_day, session_id, message_id) VALUES (%s, %s, %s, %s, %s)",
                                     parameters = (channel.id, creator.id, day_of_year, sess_id, msg.id))
-            cur.close()
-
             if creator.activity and creator.activity.type == discord.ActivityType.playing:
-                try:
-                    app_id, is_real = creator.activity.application_id, True
-                except:
-                    is_real = False
-                finally:
-                    if is_real:
-                        await self.update_message_icon(app_id, channel.id)
+                app_id, is_real = get_app_id(creator)
+                if is_real:
+                    await self.update_message_icon(app_id, channel.id)
 
     async def end_session_message(self, channel):
         async with self.get_connection() as cur:
