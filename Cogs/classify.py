@@ -272,17 +272,12 @@ class Channels_manager(commands.Cog):
                     if channel is not None and user in channel.members:
                         finded_channel = channel
                         break
-                    # if channel is None:
-                    #     await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel_id}")
-                    # elif user in channel.members:
-                    #     break
-
                 if finded_channel is not None:
                     await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
                     associate_role = await cur.fetchone()
-                    await cur.execute(f"INSERT INTO SessionsActivities (channel_id, associate_role) VALUES ({channel.id}, {associate_role[0]})")
+                    await cur.execute(f"INSERT INTO SessionsActivities (channel_id, associate_role) VALUES ({finded_channel.id}, {associate_role[0]})")
                     if is_real:
-                        await self.update_message_icon(app_id, channel.id)
+                        await self.update_message_icon(app_id, finded_channel.id)
 
     async def link_roles(self, after):
         app_id, is_real = get_app_id(after)
