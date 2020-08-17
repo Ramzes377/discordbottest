@@ -1,11 +1,11 @@
 import discord
-from discord.ext import commands
 import asyncio
 import re
 import datetime
 import aiohttp
 import os
 import numpy as np
+from discord.ext import commands
 from random import randint as r
 from sklearn.cluster import KMeans
 from cv2 import cvtColor, COLOR_BGR2RGB, imdecode
@@ -350,7 +350,7 @@ class Channels_manager(commands.Cog):
             end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)  # GMT+3
             sess_duration = end_time - start_time
 
-            if sess_duration.seconds > 2:
+            if sess_duration.seconds > 300:
                 await cur.execute(f"UPDATE SessionsID SET past_sessions_counter = {past_sessions_counter + 1} WHERE current_day = {start_day}")
 
                 await cur.execute(f"SELECT member_id FROM SessionsMembers WHERE channel_id = {channel.id}")
