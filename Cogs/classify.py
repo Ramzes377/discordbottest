@@ -388,7 +388,7 @@ class Channels_manager(commands.Cog):
             await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsActivities WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsINFO WHERE channel_id = {channel.id}")
-
+                                    
     async def _transfer_channel(self, user, channel):
         new_leader = channel.members[0]  # New leader of these channel
         async with self.get_connection() as cur:
@@ -396,7 +396,11 @@ class Channels_manager(commands.Cog):
 
         channel_name = get_activity_name(new_leader)
         permissions = {user: self.default_role_rights, new_leader: self.leader_role_rights}
-        await channel.edit(name=channel_name, overwrites=permissions)
+        try:
+            await asyncio.wait_for(channel.edit(name=channel_name, overwrites=permissions), timeout=5.0)
+        except asyncio.TimeoutError:
+            print('Trying to rename channel but Discord restrictions :(')
+            await channel.edit(overwrites=permissions)
 
 
 
