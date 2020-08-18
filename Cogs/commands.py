@@ -146,7 +146,7 @@ class Commands(commands.Cog):
 
         if user_is_playing(before):
             app_id, _ = get_app_id(before)
-            sess_duration = int(time() - before.activity.start.timestamp() - 10800)
+            sess_duration = int(time() - before.activity.start.timestamp())
             async with self.get_connection() as cur:
                 await cur.execute(f"SELECT seconds FROM UserActivityDuration WHERE user_id = {before.id} AND app_id = {app_id}")
                 seconds = await cur.fetchone()
