@@ -3,7 +3,7 @@ import asyncio
 import datetime
 from discord.ext import commands
 from time import time
-from .classify import get_app_id
+from .classify import get_app_id, user_is_playing
 from asyncio_extras import async_contextmanager
 
 
@@ -136,7 +136,7 @@ class Commands(commands.Cog):
         await message.delete()
 
     async def game_statistics(self, before, after):
-        if after.activity and after.activity.type == discord.ActivityType.playing:
+        if user_is_playing(after):
             app_id, _ = get_app_id(after)
             async with self.get_connection() as cur:
                 await cur.execute(f"SELECT seconds FROM UserActivityDuration WHERE user_id = {before.id} AND app_id = {app_id}")
@@ -144,9 +144,9 @@ class Commands(commands.Cog):
                 if not seconds:
                     await cur.execute(f"INSERT INTO UserActivityDuration (user_id, app_id, seconds) VALUES ({after.id}, {app_id}, {0})")
 
-        if before.activity and before.activity.type == discord.ActivityType.playing:
+        if user_is_playing(before):
             app_id, _ = get_app_id(before)
-            sess_duration = int(time() - before.activity.start.timestamp())
+            sess_duration = int(time() - before.activity.start.timestamp() - 10800)
             async with self.get_connection() as cur:
                 await cur.execute(f"SELECT seconds FROM UserActivityDuration WHERE user_id = {before.id} AND app_id = {app_id}")
                 seconds = await cur.fetchone()
