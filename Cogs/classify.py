@@ -26,11 +26,11 @@ time_formatter = lambda time: "%02d:%02d:%02d - %02d.%02d.%04d" % (time.hour, ti
 
 _hash = lambda string: int(str(sha3_224(string.encode(encoding='utf8')).hexdigest()), 16) % 10**10
 
+user_is_playing = lambda user: user.activity and user.activity.type == discord.ActivityType.playing
 
-def get_category(user):
-    if user.activity:
-        return categories[user.activity.type]
-    return categories[0]
+get_category = lambda user: categories[user.activity.type] if user.activity else categories[0]
+
+is_leap_year = lambda year: True if not year % 400 else False if not year % 100 else True if not year % 4 else False
 
 
 def DominantColors(img, clusters):
@@ -40,10 +40,6 @@ def DominantColors(img, clusters):
     kmeans.fit(img)
     colors = kmeans.cluster_centers_
     return colors.astype(int)
-
-
-def is_leap_year(year):
-    return True if not year % 400 else False if not year % 100 else True if not year % 4 else False
 
 
 def session_id():
@@ -150,31 +146,45 @@ class Channels_manager(commands.Cog):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" за каналами"))
         print(f'{type(self).__name__} starts')
         
-    async def _create_channel(self, user):
-        channel_name = get_activity_name(user)
-        category = get_category(user)
-        permissions = {user.guild.default_role: self.default_role_rights, user: self.leader_role_rights}
-        channel = await user.guild.create_voice_channel(channel_name, category=category, overwrites=permissions)
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        await self._show_activity(after)
 
-        async with self.get_connection() as cur:
-            await cur.execute(f"INSERT INTO ChannelsINFO (user_id, channel_id) VALUES ({user.id}, {channel.id})")
-        await user.move_to(channel)
-        return channel
 
-    async def _edit_role_giver_message(self, emoji_id):
-        emoji = self.bot.get_emoji(emoji_id)
-        try:
-            await self.msg.add_reaction(emoji)
-        except discord.errors.Forbidden:
-            channel = self.msg.channel
-            self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
-            await self.msg.add_reaction(emoji)
+    async def _show_activity(self, user):
+        channel = await self.get_user_channel(user.id)
+        if channel is not None:
+            await self._sort_channels_by_activity(user)
+            if user_is_playing(user):
+                await self._link_gamerole_with_user(user)
+                await self._logging_activities(user)
 
     async def _sort_channels_by_activity(self, user):
         channel = await self.get_user_channel(user.id)
         channel_name = get_activity_name(user)
         category = get_category(user)
-        await channel.edit(name=channel_name, category=category)
+        try:
+            await asyncio.wait_for(channel.edit(name=channel_name, category=category), timeout=5.0)
+        except asyncio.TimeoutError:
+            print('Trying to rename channel but Discord restrictions :(')
+
+    async def _link_gamerole_with_user(self, after):
+        app_id, is_real = get_app_id(after)
+        role_name = after.activity.name
+        guild = after.guild
+        async with self.get_connection() as cur:
+            await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
+            created_role = await cur.fetchone()
+        if created_role:  # role already exist
+            role = guild.get_role(created_role[0])  # get role
+            if not role in after.roles:  # check user have these role
+                await after.add_roles(role)
+        else:
+            color = await self._create_activity_emoji(guild, app_id) if is_real else r(70, 255), r(70, 255), r(70, 255)
+            role = await guild.create_role(name=role_name, permissions=guild.default_role.permissions,
+                                           colour=discord.Colour(1).from_rgb(*color), hoist=True, mentionable=True)
+            await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
+            await after.add_roles(role)
 
     async def _create_activity_emoji(self, guild, app_id):
         async with self.get_connection() as cur:
@@ -192,77 +202,21 @@ class Channels_manager(commands.Cog):
             img_np = imdecode(np.frombuffer(content, dtype='uint8'), 1)
             return DominantColors(img_np, 3)[0]
 
-    async def _manage_channels(self, member, after):
-        channel = await self.get_user_channel(member.id) #try to get user's channel
-        user_join_create_channel = after.channel == self.bot.create_channel
-        if user_join_create_channel:
-            await self._user_try_create_channel(member, channel)
-        else:
-            await self._user_join_to_foreign(member, channel, after.channel)
+    async def _edit_role_giver_message(self, emoji_id):
+        emoji = self.bot.get_emoji(emoji_id)
+        try:
+            await self.msg.add_reaction(emoji)
+        except discord.errors.Forbidden:
+            channel = self.msg.channel
+            self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
+            await self.msg.add_reaction(emoji)
 
-    async def _user_try_create_channel(self, user, user_channel):
-        async with self.get_connection() as cur:
-            if user_channel is not None:  # if channel already exist
-                await user.move_to(user_channel)  # just send user to his channel
-            else:  # channel yet don't exist
-                channel = await self._create_channel(user)  # create channel
-                await self.start_session_message(user, channel)  # send session message
-
-    async def _user_join_to_foreign(self, user, user_channel, foreign_channel):
-        # user join any non-create channel two cases:
-        # 1) He has channel and join to it;
-        # 2) He hasn't channel and try to join to channel of another user
-
-        user_have_channel = user_channel is not None
-        user_join_to_another_channel = foreign_channel != user_channel
-        if user_have_channel and user_join_to_another_channel:
-            await self._leader_leave_own_channel(user, user_channel)
-
-        if foreign_channel is not None: #user not just leave
-            async with self.get_connection() as cur:
-                await cur.execute(f"INSERT INTO SessionsMembers (channel_id, member_id) VALUES ({foreign_channel.id}, {user.id})")
-
-    async def _leader_leave_own_channel(self, leader, leader_channel):
-        user_channel_empty = not leader_channel.members
-        if user_channel_empty:  # write end session message and delete channel
-            async with self.get_connection() as cur:
-                await self.end_session_message(leader_channel)
-                await cur.execute(f"DELETE FROM ChannelsINFO WHERE user_id = {leader.id}")
-                await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {leader_channel.id}")
-                await leader_channel.delete()
-        else:  # if channel isn't empty just transfer channel
-            await self._transfer_channel(leader, leader_channel)
-
-    async def _transfer_channel(self, user, channel):
-        new_leader = channel.members[0]  # New leader of these channel
-        async with self.get_connection() as cur:
-            await cur.execute(f"UPDATE ChannelsINFO SET user_id = {new_leader.id} WHERE channel_id = {channel.id}")
-
-        channel_name = get_activity_name(new_leader)
-        permissions = {user: self.default_role_rights, new_leader: self.leader_role_rights}
-        await channel.edit(name=channel_name, overwrites=permissions)
-
-    async def update_message_icon(self, app_id, channel_id):
-        async with self.get_connection() as cur:
-            await cur.execute(f"SELECT message_id FROM SessionsINFO WHERE channel_id = {channel_id}")
-            message_id = await cur.fetchone()
-            if not message_id:
-                return
-            await cur.execute(f'SELECT icon_url FROM ActivitiesINFO WHERE application_id = {app_id}')
-            thumbnail_url = await cur.fetchone()
-        if thumbnail_url:
-            msg = await self.bot.logger_channel.fetch_message(*message_id)
-            msg_embed = msg.embeds[0]
-            msg_embed.set_thumbnail(url=thumbnail_url[0])
-            await msg.edit(embed=msg_embed)
-
-    async def logging_activities(self, user):
+    async def _logging_activities(self, user):
         app_id, is_real = get_app_id(user)
 
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT * FROM SessionsMembers WHERE member_id = {user.id}") #recognize that's these user member of session
             user_sessions = await cur.fetchall() #all of his sessions
-            print(user_sessions, 'here')
 
             finded_channel = None
             user_have_sessions = user_sessions is not None
@@ -272,36 +226,61 @@ class Channels_manager(commands.Cog):
                     if channel is not None and user in channel.members:
                         finded_channel = channel
                         break
+
                 if finded_channel is not None:
                     await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
                     associate_role = await cur.fetchone()
                     await cur.execute(f"INSERT INTO SessionsActivities (channel_id, associate_role) VALUES ({finded_channel.id}, {associate_role[0]})")
                     if is_real:
-                        await self.update_message_icon(app_id, finded_channel.id)
+                        await self._update_message_icon(app_id, finded_channel.id)
 
-    async def link_roles(self, after):
-        app_id, is_real = get_app_id(after)
-        role_name = after.activity.name
-        guild = after.guild
+    async def _update_message_icon(self, app_id, channel_id):
+        async with self.get_connection() as cur:
+            await cur.execute(f"SELECT message_id FROM SessionsINFO WHERE channel_id = {channel_id}")
+            message_id = await cur.fetchone()
+            await cur.execute(f'SELECT icon_url FROM ActivitiesINFO WHERE application_id = {app_id}')
+            thumbnail_url = await cur.fetchone()
+        if thumbnail_url:
+            msg = await self.bot.logger_channel.fetch_message(*message_id)
+            msg_embed = msg.embeds[0]
+            msg_embed.set_thumbnail(url=thumbnail_url[0])
+            await msg.edit(embed=msg_embed)
+
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        await self._manage_channels(member, after)
+
+
+    async def _manage_channels(self, member, after):
+        channel = await self.get_user_channel(member.id) #try to get user's channel
+        user_join_create_channel = after.channel == self.bot.create_channel
+        if user_join_create_channel:
+            await self._user_try_create_channel(member, channel)
+        else:
+            await self._user_join_to_foreign(member, channel, after.channel)
+
+
+    async def _user_try_create_channel(self, user, user_channel):
+        user_have_channel = user_channel is not None
+        if user_have_channel:  # if channel already exist
+            await user.move_to(user_channel)  # just send user to his channel
+        else:  # channel yet don't exist
+            channel = await self._create_channel(user)  # create channel
+            await self._start_session_message(user, channel)  # send session message
+
+    async def _create_channel(self, user):
+        channel_name = get_activity_name(user)
+        category = get_category(user)
+        permissions = {user.guild.default_role: self.default_role_rights, user: self.leader_role_rights}
+        channel = await user.guild.create_voice_channel(channel_name, category=category, overwrites=permissions)
 
         async with self.get_connection() as cur:
-            await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
-            created_role = await cur.fetchone()
-            if created_role:  # role already exist
-                role = guild.get_role(created_role[0])  # get role
-                if not role in after.roles:  # check user have these role
-                    await after.add_roles(role)
-            else:
-                color = await self._create_activity_emoji(guild, app_id) if is_real else r(70, 255), r(70, 255), r(70, 255)
-                role = await guild.create_role(name=role_name,
-                                               permissions=guild.default_role.permissions,
-                                               colour=discord.Colour(1).from_rgb(*color),
-                                               hoist=True,
-                                               mentionable=True)
-                await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
-                await after.add_roles(role)
+            await cur.execute(f"INSERT INTO ChannelsINFO (user_id, channel_id) VALUES ({user.id}, {channel.id})")
+        await user.move_to(channel)
+        return channel
 
-    async def start_session_message(self, creator, channel):
+    async def _start_session_message(self, creator, channel):
         day_of_year, is_leap_year = session_id()
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT past_sessions_counter, current_sessions_counter FROM SessionsID WHERE current_day = {day_of_year}")
@@ -324,17 +303,38 @@ class Channels_manager(commands.Cog):
             await cur.execute(f"UPDATE SessionsID SET current_sessions_counter = {current_sessions_counter + 1} WHERE current_day = {day_of_year}")
             await cur.execute(f"INSERT INTO SessionsINFO (channel_id, creator_id, start_day, session_id, message_id) VALUES (%s, %s, %s, %s, %s)",
                                     parameters = (channel.id, creator.id, day_of_year, sess_id, msg.id))
-            if creator.activity and creator.activity.type == discord.ActivityType.playing:
+            if user_is_playing(creator):
                 app_id, is_real = get_app_id(creator)
                 if is_real:
-                    await self.update_message_icon(app_id, channel.id)
+                    await self._update_message_icon(app_id, channel.id)
 
-    async def end_session_message(self, channel):
+
+    async def _user_join_to_foreign(self, user, user_channel, foreign_channel):
+        # User haven't channel and try to join to channel of another user
+        user_have_channel = user_channel is not None
+        user_leave_guild = foreign_channel is None
+
+        if user_have_channel:
+            await self._leader_leave_own_channel(user, user_channel)
+
+        if not user_leave_guild: #user not just leave from server
+            async with self.get_connection() as cur:
+                await cur.execute(f"INSERT INTO SessionsMembers (channel_id, member_id) VALUES ({foreign_channel.id}, {user.id})")
+
+    async def _leader_leave_own_channel(self, leader, leader_channel):
+        user_channel_empty = not leader_channel.members
+        if user_channel_empty:  # write end session message and delete channel
+            await self._end_session_message(leader_channel)
+            await leader_channel.delete()
+        else:  # if channel isn't empty just transfer channel
+            await self._transfer_channel(leader, leader_channel)
+
+    async def _end_session_message(self, channel):
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT * FROM SessionsINFO WHERE channel_id = {channel.id}")
             session_info = await cur.fetchone()
-            _, creator_id, start_day, session_id, message_id = session_info
 
+            _, creator_id, start_day, session_id, message_id = session_info
             await cur.execute(f"SELECT past_sessions_counter, current_sessions_counter FROM SessionsID WHERE current_day = {start_day}")
             past_sessions_counter, current_sessions_counter = await cur.fetchone()
             await cur.execute(f"UPDATE SessionsID SET current_sessions_counter = {current_sessions_counter - 1} WHERE current_day = {start_day}")
@@ -380,46 +380,30 @@ class Channels_manager(commands.Cog):
                         await msg.add_reaction(emoji)
             else:
                 await msg.delete()
-
+            await cur.execute(f"DELETE FROM ChannelsINFO WHERE user_id = {creator_id}")
             await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsActivities WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsINFO WHERE channel_id = {channel.id}")
 
-    async def get_user_channel(self, user_id):
+    async def _transfer_channel(self, user, channel):
+        new_leader = channel.members[0]  # New leader of these channel
         async with self.get_connection() as cur:
-            await cur.execute(f"SELECT channel_id FROM ChannelsINFO WHERE user_id = {user_id}")
-            channel_id = await cur.fetchone()
-        if channel_id:
-            return self.bot.get_channel(*channel_id)
+            await cur.execute(f"UPDATE ChannelsINFO SET user_id = {new_leader.id} WHERE channel_id = {channel.id}")
 
-    async def five_min_timer(self):
-        self._is_five_mins_pass = False
-        await asyncio.sleep(300)
-        self._is_five_mins_pass = True
+        channel_name = get_activity_name(new_leader)
+        permissions = {user: self.default_role_rights, new_leader: self.leader_role_rights}
+        await channel.edit(name=channel_name, overwrites=permissions)
 
-
-    @commands.Cog.listener()
-    async def on_member_update(self, before, after):
-        async with self.get_connection() as cur:
-            await cur.execute(f"SELECT channel_id FROM ChannelsINFO WHERE user_id = {after.id}")
-            channel_info = await cur.fetchone()
-        if channel_info:
-            if self._is_five_mins_pass:
-                await self._sort_channels_by_activity(after)
-            if after.activity and after.activity.type == discord.ActivityType.playing:
-                await self.link_roles(after)
-                await self.logging_activities(after)
-            await self.five_min_timer()
-
-
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        await self._manage_channels(member, after)
 
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
-        if payload.user_id != self.bot.user.id:
+        await self._add_associated_role(payload)
+
+
+    async def _add_associated_role(self, payload):
+        user_is_bot = payload.user_id == self.bot.user.id
+        if not user_is_bot:
             emoji = payload.emoji
             async with self.get_connection() as cur:
                 await cur.execute(f"SELECT application_id FROM CreatedEmoji WHERE emoji_id = {emoji.id}")
@@ -427,16 +411,21 @@ class Channels_manager(commands.Cog):
                 if application_id:
                     await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {application_id[0]}")
                     associated_role = await cur.fetchone()
-                    if associated_role:
-                        guild = self.bot.get_guild(payload.guild_id)
-                        member = guild.get_member(payload.user_id)
-                        role = guild.get_role(associated_role[0])
-                        await member.add_roles(role)
+        if associated_role:
+            guild = self.bot.get_guild(payload.guild_id)
+            member = guild.get_member(payload.user_id)
+            role = guild.get_role(associated_role[0])
+            await member.add_roles(role)
 
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
-        if payload.user_id != self.bot.user.id:
+        await self._remove_associated_role(payload)
+
+
+    async def _remove_associated_role(self, payload):
+        user_is_bot = payload.user_id == self.bot.user.id
+        if not user_is_bot:
             emoji = payload.emoji
             async with self.get_connection() as cur:
                 await cur.execute(f"SELECT application_id FROM CreatedEmoji WHERE emoji_id = {emoji.id}")
@@ -444,11 +433,12 @@ class Channels_manager(commands.Cog):
                 if application_id:
                     await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {application_id[0]}")
                     associated_role = await cur.fetchone()
-                    if associated_role:
-                        guild = self.bot.get_guild(payload.guild_id)
-                        member = guild.get_member(payload.user_id)
-                        role = guild.get_role(associated_role[0])
-                        await member.remove_roles(role)
+            if associated_role:
+                guild = self.bot.get_guild(payload.guild_id)
+                member = guild.get_member(payload.user_id)
+                role = guild.get_role(associated_role[0])
+                await member.remove_roles(role)
+
 
 
     @async_contextmanager
@@ -457,6 +447,12 @@ class Channels_manager(commands.Cog):
             async with conn.cursor() as cur:
                 yield cur
 
+    async def get_user_channel(self, user_id):
+        async with self.get_connection() as cur:
+            await cur.execute(f"SELECT channel_id FROM ChannelsINFO WHERE user_id = {user_id}")
+            channel_id = await cur.fetchone()
+        if channel_id:
+            return self.bot.get_channel(*channel_id)
 
 def setup(bot):
     bot.add_cog(Channels_manager(bot))
