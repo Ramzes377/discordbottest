@@ -146,7 +146,8 @@ class Channels_manager(commands.Cog):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" за каналами"))
         print(f'{type(self).__name__} starts')
         
-    @commands.Cog.listener()
+        
+   @commands.Cog.listener()
     async def on_member_update(self, before, after):
         await self._show_activity(after)
 
@@ -166,8 +167,8 @@ class Channels_manager(commands.Cog):
         try:
             await asyncio.wait_for(channel.edit(name=channel_name, category=category), timeout=5.0)
         except asyncio.TimeoutError:
-            print('Trying to rename channel but Discord restrictions :(')
             await channel.edit(category=category)
+            print('Trying to rename channel but Discord restrictions :(')
 
     async def _link_gamerole_with_user(self, after):
         app_id, is_real = get_app_id(after)
@@ -256,9 +257,10 @@ class Channels_manager(commands.Cog):
     async def _manage_channels(self, member, after):
         channel = await self.get_user_channel(member.id) #try to get user's channel
         user_join_create_channel = after.channel == self.bot.create_channel
+        user_join_own_channel = after.channel == channel
         if user_join_create_channel:
             await self._user_try_create_channel(member, channel)
-        else:
+        elif not user_join_own_channel:
             await self._user_join_to_foreign(member, channel, after.channel)
 
 
@@ -278,6 +280,7 @@ class Channels_manager(commands.Cog):
 
         async with self.get_connection() as cur:
             await cur.execute(f"INSERT INTO ChannelsINFO (user_id, channel_id) VALUES ({user.id}, {channel.id})")
+            await cur.execute(f"INSERT INTO SessionsMembers (channel_id, member_id) VALUES ({channel.id}, {user.id})")
         await user.move_to(channel)
         return channel
 
@@ -311,7 +314,7 @@ class Channels_manager(commands.Cog):
 
 
     async def _user_join_to_foreign(self, user, user_channel, foreign_channel):
-        # User haven't channel and try to join to channel of another user
+        # User havn't channel and try to join to channel of another user
         user_have_channel = user_channel is not None
         user_leave_guild = foreign_channel is None
 
@@ -326,10 +329,7 @@ class Channels_manager(commands.Cog):
         user_channel_empty = not leader_channel.members
         if user_channel_empty:  # write end session message and delete channel
             await self._end_session_message(leader_channel)
-            try:
-                await asyncio.wait_for(leader_channel.delete(), timeout=3.0)
-            except asyncio.TimeoutError:
-                print('Trying to delete channel', leader_channel)
+            await leader_channel.delete()
         else:  # if channel isn't empty just transfer channel
             await self._transfer_channel(leader, leader_channel)
 
@@ -349,7 +349,7 @@ class Channels_manager(commands.Cog):
             end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)  # GMT+3
             sess_duration = end_time - start_time
 
-            if sess_duration.seconds > 300:
+            if sess_duration.seconds > 2:
                 await cur.execute(f"UPDATE SessionsID SET past_sessions_counter = {past_sessions_counter + 1} WHERE current_day = {start_day}")
 
                 await cur.execute(f"SELECT member_id FROM SessionsMembers WHERE channel_id = {channel.id}")
@@ -384,11 +384,12 @@ class Channels_manager(commands.Cog):
                         await msg.add_reaction(emoji)
             else:
                 await msg.delete()
-            await cur.execute(f"DELETE FROM ChannelsINFO WHERE user_id = {creator_id}")
+
+            await cur.execute(f"DELETE FROM ChannelsINFO WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsActivities WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsINFO WHERE channel_id = {channel.id}")
-                                    
+
     async def _transfer_channel(self, user, channel):
         new_leader = channel.members[0]  # New leader of these channel
         async with self.get_connection() as cur:
@@ -399,9 +400,8 @@ class Channels_manager(commands.Cog):
         try:
             await asyncio.wait_for(channel.edit(name=channel_name, overwrites=permissions), timeout=5.0)
         except asyncio.TimeoutError:
-            print('Trying to rename channel but Discord restrictions :(')
+            print('Trying to rename channel in transfer but Discord restrictions :(')
             await channel.edit(overwrites=permissions)
-
 
 
     @commands.Cog.listener()
@@ -419,11 +419,11 @@ class Channels_manager(commands.Cog):
                 if application_id:
                     await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {application_id[0]}")
                     associated_role = await cur.fetchone()
-        if associated_role:
-            guild = self.bot.get_guild(payload.guild_id)
-            member = guild.get_member(payload.user_id)
-            role = guild.get_role(associated_role[0])
-            await member.add_roles(role)
+                if associated_role:
+                    guild = self.bot.get_guild(payload.guild_id)
+                    member = guild.get_member(payload.user_id)
+                    role = guild.get_role(associated_role[0])
+                    await member.add_roles(role)
 
 
     @commands.Cog.listener()
@@ -441,11 +441,11 @@ class Channels_manager(commands.Cog):
                 if application_id:
                     await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {application_id[0]}")
                     associated_role = await cur.fetchone()
-            if associated_role:
-                guild = self.bot.get_guild(payload.guild_id)
-                member = guild.get_member(payload.user_id)
-                role = guild.get_role(associated_role[0])
-                await member.remove_roles(role)
+                if associated_role:
+                    guild = self.bot.get_guild(payload.guild_id)
+                    member = guild.get_member(payload.user_id)
+                    role = guild.get_role(associated_role[0])
+                    await member.remove_roles(role)
 
 
 
