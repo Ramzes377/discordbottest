@@ -167,6 +167,7 @@ class Channels_manager(commands.Cog):
             await asyncio.wait_for(channel.edit(name=channel_name, category=category), timeout=5.0)
         except asyncio.TimeoutError:
             print('Trying to rename channel but Discord restrictions :(')
+            await channel.edit(category=category)
 
     async def _link_gamerole_with_user(self, after):
         app_id, is_real = get_app_id(after)
@@ -325,7 +326,10 @@ class Channels_manager(commands.Cog):
         user_channel_empty = not leader_channel.members
         if user_channel_empty:  # write end session message and delete channel
             await self._end_session_message(leader_channel)
-            await leader_channel.delete()
+            try:
+                await asyncio.wait_for(leader_channel.delete(), timeout=3.0)
+            except asyncio.TimeoutError:
+                print('Trying to delete channel', leader_channel)
         else:  # if channel isn't empty just transfer channel
             await self._transfer_channel(leader, leader_channel)
 
