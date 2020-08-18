@@ -147,7 +147,7 @@ class Channels_manager(commands.Cog):
         print(f'{type(self).__name__} starts')
         
         
-   @commands.Cog.listener()
+    @commands.Cog.listener()
     async def on_member_update(self, before, after):
         await self._show_activity(after)
 
