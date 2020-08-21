@@ -154,11 +154,11 @@ class Channels_manager(commands.Cog):
 
     async def _show_activity(self, user):
         channel = await self.get_user_channel(user.id)
-        if channel is not None:
-            await self._sort_channels_by_activity(user)
-            if user_is_playing(user):
-                await self._link_gamerole_with_user(user)
+        if user_is_playing(user):
+            if channel is not None:
+                await self._sort_channels_by_activity(user)
                 await self._logging_activities(user)
+            await self._link_gamerole_with_user(user)
 
     async def _sort_channels_by_activity(self, user):
         channel = await self.get_user_channel(user.id)
