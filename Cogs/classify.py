@@ -197,6 +197,10 @@ class Channels_manager(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 async with session.get(thumbnail_url) as response:
                     content = await response.read()
+                    
+            if not content:
+                return r(70, 255), r(70, 255), r(70, 255)
+              
             emoji = await guild.create_custom_emoji(name=name, image=content)
 
             await cur.execute(f"INSERT INTO CreatedEmoji (application_id, emoji_id) VALUES ({app_id}, {emoji.id})")
