@@ -6,7 +6,7 @@ import aiohttp
 import os
 import numpy as np
 from discord.ext import commands
-from random import randint as r
+from random import randint
 from sklearn.cluster import KMeans
 from cv2 import cvtColor, COLOR_BGR2RGB, imdecode
 from hashlib import sha3_224
@@ -31,6 +31,8 @@ user_is_playing = lambda user: user.activity and user.activity.type == discord.A
 get_category = lambda user: categories[user.activity.type] if user.activity else categories[0]
 
 is_leap_year = lambda year: True if not year % 400 else False if not year % 100 else True if not year % 4 else False
+
+get_pseudo_random_color = lambda: (randint(70, 255), randint(70, 255), randint(70, 255))
 
 
 def DominantColors(img, clusters):
@@ -95,40 +97,49 @@ class Channels_manager(commands.Cog):
 
         self.bot.create_channel = self.bot.get_channel(create_channel_id)
         self.bot.logger_channel = self.bot.get_channel(logger_id)
-        
+
+        await self._sort_roles()
+        await self._manage_created_channels()
+        await self._delete_removed_emoji()
+
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching,name=" за каналами"))
+        print(f'{type(self).__name__} starts')
+
+
+    async def _sort_roles(self):
         guild = self.bot.create_channel.guild
         roles = guild.roles
-        sorted_roles = sorted(roles, key=lambda role: len(role.members), reverse = True)
-        
-        async with self.bot.db.acquire() as conn:
-            async with conn.cursor() as cur:
-                for role in sorted_roles:
-                    if role.hoist:
-                        await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
-                        if await cur.fetchone():
-                            await role.edit(position = len(role.members) if len(role.members) > 0 else 1)
-        
-        async with self.bot.db.acquire() as conn:
-            async with conn.cursor() as cur:
-                active_channels = await cur.execute("SELECT channel_id FROM ChannelsINFO")
-                if active_channels:
-                    for chnls in active_channels:
-                        channel_id = chnls[0]
-                        channel = self.bot.get_channel(channel_id)
-                        if channel:
-                            if not channel.members:
-                                await self.end_session_message(channel)
-                                await channel.delete()
-                                await cur.execute(f"DELETE FROM ChannelsINFO WHERE channel_id = {channel_id}")
-                            else:
-                                await cur.execute(f"SELECT user_id FROM ChannelsINFO WHERE channel_id = {channel_id}")
-                                user_id = await cur.fetchone()[0]
-                                user = self.bot.get_user(user_id)
-                                if not user in channel.members:
-                                    await self._transfer_channel(user)
-                        else:
-                            await cur.execute(f"DELETE FROM ChannelsINFO WHERE channel_id = {channel_id}")
+        sorted_roles = sorted(roles, key=lambda role: len(role.members), reverse=True)
 
+        async with self.get_connection() as cur:
+            for role in sorted_roles:
+                if role.hoist:
+                    await cur.execute(f"SELECT * FROM CreatedRoles WHERE role_id = {role.id}")
+                    if await cur.fetchone():
+                        await role.edit(position=len(role.members) if len(role.members) > 0 else 1)
+
+    async def _manage_created_channels(self):
+        async with self.get_connection() as cur:
+            active_channels = await cur.execute("SELECT channel_id FROM ChannelsINFO")
+            for channel_id, in active_channels:
+                channel = self.bot.get_channel(channel_id)
+                channel_exist = channel is not None
+                if channel_exist:
+                    channel_empty = not channel.members
+                    if channel_empty:
+                        await self._end_session_message(channel)
+                        await channel.delete()
+                    else:
+                        await cur.execute(f"SELECT user_id FROM ChannelsINFO WHERE channel_id = {channel_id}")
+                        user_id = await cur.fetchone()
+                        user = self.bot.get_user(*user_id)
+                        leader_leave = not user in channel.members
+                        if leader_leave:
+                            await self._transfer_channel(user)
+                else:
+                    await cur.execute(f"DELETE FROM ChannelsINFO WHERE channel_id = {channel_id}")
+
+    async def _delete_removed_emoji(self):
         channel = self.bot.get_channel(role_request_id)
         story = await channel.history(limit=None).flatten()
         if len(story) > 0:
@@ -137,14 +148,11 @@ class Channels_manager(commands.Cog):
             for reaction in self.msg.reactions:
                 if not reaction.emoji in guild.emojis:
                     await self.msg.remove_reaction(reaction.emoji, guild.get_member(self.bot.user.id))
-                    async with self.bot.db.acquire() as conn:
-                        async with conn.cursor() as cur:
-                            await cur.execute(f"DELETE FROM CreatedEmoji WHERE emoji_id = {reaction.emoji.id}")
+                    async with self.get_connection() as cur:
+                        await cur.execute(f"DELETE FROM CreatedEmoji WHERE emoji_id = {reaction.emoji.id}")
         else:
             self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
 
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=" за каналами"))
-        print(f'{type(self).__name__} starts')
         
         
     @commands.Cog.listener()
@@ -177,16 +185,16 @@ class Channels_manager(commands.Cog):
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
             created_role = await cur.fetchone()
-        if created_role:  # role already exist
-            role = guild.get_role(created_role[0])  # get role
-            if not role in after.roles:  # check user have these role
+            if created_role:  # role already exist
+                role = guild.get_role(created_role[0])  # get role
+                if not role in after.roles:  # check user have these role
+                    await after.add_roles(role)
+            else:
+                color = await self._create_activity_emoji(guild, app_id) if is_real else get_pseudo_random_color()
+                role = await guild.create_role(name=role_name, permissions=guild.default_role.permissions,
+                                               colour=discord.Colour(1).from_rgb(*color), hoist=True, mentionable=True)
+                await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
                 await after.add_roles(role)
-        else:
-            color = await self._create_activity_emoji(guild, app_id) if is_real else r(70, 255), r(70, 255), r(70, 255)
-            role = await guild.create_role(name=role_name, permissions=guild.default_role.permissions,
-                                           colour=discord.Colour(1).from_rgb(*color), hoist=True, mentionable=True)
-            await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
-            await after.add_roles(role)
 
     async def _create_activity_emoji(self, guild, app_id):
         async with self.get_connection() as cur:
@@ -197,12 +205,11 @@ class Channels_manager(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 async with session.get(thumbnail_url) as response:
                     content = await response.read()
-                    
-            if not content:
-                return r(70, 255), r(70, 255), r(70, 255)
-              
-            emoji = await guild.create_custom_emoji(name=name, image=content)
 
+            if not content:
+                return get_pseudo_random_color()
+
+            emoji = await guild.create_custom_emoji(name=name, image=content)
             await cur.execute(f"INSERT INTO CreatedEmoji (application_id, emoji_id) VALUES ({app_id}, {emoji.id})")
             await self._edit_role_giver_message(emoji.id)
             img_np = imdecode(np.frombuffer(content, dtype='uint8'), 1)
@@ -463,8 +470,8 @@ class Channels_manager(commands.Cog):
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT channel_id FROM ChannelsINFO WHERE user_id = {user_id}")
             channel_id = await cur.fetchone()
-        if channel_id:
-            return self.bot.get_channel(*channel_id)
+            if channel_id:
+                return self.bot.get_channel(*channel_id)
 
 def setup(bot):
     bot.add_cog(Channels_manager(bot))
