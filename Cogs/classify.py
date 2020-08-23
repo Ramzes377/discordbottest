@@ -121,6 +121,7 @@ class Channels_manager(commands.Cog):
     async def _manage_created_channels(self):
         async with self.get_connection() as cur:
             active_channels = await cur.execute("SELECT channel_id FROM ChannelsINFO")
+        if active_channels:
             for channel_id, in active_channels:
                 channel = self.bot.get_channel(channel_id)
                 channel_exist = channel is not None
