@@ -11,6 +11,7 @@ from sklearn.cluster import KMeans
 from cv2 import cvtColor, COLOR_BGR2RGB, imdecode
 from hashlib import sha3_224
 from asyncio_extras import async_contextmanager
+from itertools import chain
 
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
@@ -33,6 +34,9 @@ get_category = lambda user: categories[user.activity.type] if user.activity else
 is_leap_year = lambda year: True if not year % 400 else False if not year % 100 else True if not year % 4 else False
 
 get_pseudo_random_color = lambda: (randint(70, 255), randint(70, 255), randint(70, 255))
+
+flatten = lambda collection: chain(*collection) if collection is not None else []
+
 
 
 def DominantColors(img, clusters):
@@ -121,8 +125,9 @@ class Channels_manager(commands.Cog):
     async def _manage_created_channels(self):
         async with self.get_connection() as cur:
             active_channels = await cur.execute("SELECT channel_id FROM ChannelsINFO")
+        active_channels = flatten(active_channels)
         if active_channels:
-            for channel_id, in active_channels:
+            for channel_id in active_channels:
                 channel = self.bot.get_channel(channel_id)
                 channel_exist = channel is not None
                 if channel_exist:
@@ -154,8 +159,7 @@ class Channels_manager(commands.Cog):
         else:
             self.msg = await channel.send("Нажмите на иконку игры, чтобы получить соответствующую игровую роль!")
 
-        
-        
+
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
         await self._show_activity(after)
@@ -229,24 +233,22 @@ class Channels_manager(commands.Cog):
         app_id, is_real = get_app_id(user)
 
         async with self.get_connection() as cur:
-            await cur.execute(f"SELECT * FROM SessionsMembers WHERE member_id = {user.id}") #recognize that's these user member of session
+            await cur.execute(f"SELECT channel_id FROM SessionsMembers WHERE member_id = {user.id}") #recognize that's these user member of session
             user_sessions = await cur.fetchall() #all of his sessions
-
+            user_sessions = flatten(user_sessions)
             finded_channel = None
-            user_have_sessions = user_sessions is not None
-            if user_have_sessions:
-                for channel_id, _ in user_sessions: #user member of atleast one session
-                    channel = self.bot.get_channel(channel_id)
-                    if channel is not None and user in channel.members:
-                        finded_channel = channel
-                        break
+            for channel_id in user_sessions: #user member of atleast one session
+                channel = self.bot.get_channel(channel_id)
+                if channel is not None and user in channel.members:
+                    finded_channel = channel
+                    break
 
-                if finded_channel is not None:
-                    await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
-                    associate_role = await cur.fetchone()
-                    await cur.execute(f"INSERT INTO SessionsActivities (channel_id, associate_role) VALUES ({finded_channel.id}, {associate_role[0]})")
-                    if is_real:
-                        await self._update_message_icon(app_id, finded_channel.id)
+            if finded_channel is not None:
+                await cur.execute(f"SELECT role_id FROM CreatedRoles WHERE application_id = {app_id}")
+                associate_role = await cur.fetchone()
+                await cur.execute(f"INSERT INTO SessionsActivities (channel_id, associate_role) VALUES ({finded_channel.id}, {associate_role[0]})")
+                if is_real:
+                    await self._update_message_icon(app_id, finded_channel.id)
 
     async def _update_message_icon(self, app_id, channel_id):
         async with self.get_connection() as cur:
@@ -355,52 +357,58 @@ class Channels_manager(commands.Cog):
             past_sessions_counter, current_sessions_counter = await cur.fetchone()
             await cur.execute(f"UPDATE SessionsID SET current_sessions_counter = {current_sessions_counter - 1} WHERE current_day = {start_day}")
 
-            msg = await self.bot.logger_channel.fetch_message(message_id)
+        msg = await self.bot.logger_channel.fetch_message(message_id)
+        start_time = msg.created_at + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)
+        end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)  # GMT+3
+        sess_duration = end_time - start_time
 
-            start_time = msg.created_at + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)
-            end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)  # GMT+3
-            sess_duration = end_time - start_time
-
-            if sess_duration.seconds > 300:
+        if sess_duration.seconds > 2:
+            async with self.get_connection() as cur:
                 await cur.execute(f"UPDATE SessionsID SET past_sessions_counter = {past_sessions_counter + 1} WHERE current_day = {start_day}")
 
                 await cur.execute(f"SELECT member_id FROM SessionsMembers WHERE channel_id = {channel.id}")
                 session_members = await cur.fetchall()
-                users_ids = set(session_members) if session_members else []
-                embed_obj = discord.Embed(title=f"Сессия {session_id} окончена!", color=discord.Color.red())
-                embed_obj.add_field(name='Время начала', value=f'{time_formatter(start_time)}')
-                embed_obj.add_field(name='Время окончания', value=f'{time_formatter(end_time)}')
-                embed_obj.add_field(name='Продолжительность', value=f"{str(sess_duration).split('.')[0]}", inline=False)
-                embed_obj.add_field(name='Участники', value=', '.join((f'<@{id[0]}>' for id in users_ids)), inline=False)
-
-                thumbnail_url = msg.embeds[0].thumbnail.url
-                if thumbnail_url:
-                    embed_obj.set_thumbnail(url = thumbnail_url)
-
-                creator = channel.guild.get_member(creator_id)
-                embed_obj.set_footer(text=creator.display_name + " - Создатель сессии", icon_url=creator.avatar_url)
-
-                await msg.edit(embed = embed_obj)
+                users_ids = set(flatten(session_members))
 
                 await cur.execute(f"SELECT associate_role FROM SessionsActivities WHERE channel_id = {channel.id}")
                 associated_roles = await cur.fetchall()
-                roles_ids = set(associated_roles) if associated_roles else []
+                roles_ids = set(flatten(associated_roles))
 
-                for role_id in roles_ids:
-                    await cur.execute(f"SELECT application_id FROM CreatedRoles WHERE role_id = {role_id[0]}")
-                    app_id = await cur.fetchone()
-                    await cur.execute(f"SELECT emoji_id FROM CreatedEmoji WHERE application_id = {app_id[0]}")
-                    emoji_id = await cur.fetchone()
-                    if emoji_id:
-                        emoji = self.bot.get_emoji(emoji_id[0])
-                        await msg.add_reaction(emoji)
-            else:
-                await msg.delete()
+            embed_obj = discord.Embed(title=f"Сессия {session_id} окончена!", color=discord.Color.red())
+            embed_obj.add_field(name='Время начала', value=f'{time_formatter(start_time)}')
+            embed_obj.add_field(name='Время окончания', value=f'{time_formatter(end_time)}')
+            embed_obj.add_field(name='Продолжительность', value=f"{str(sess_duration).split('.')[0]}", inline=False)
+            embed_obj.add_field(name='Участники', value=', '.join((f'<@{id}>' for id in users_ids)), inline=False)
 
+            thumbnail_url = msg.embeds[0].thumbnail.url
+            if thumbnail_url:
+                embed_obj.set_thumbnail(url=thumbnail_url)
+
+            creator = channel.guild.get_member(creator_id)
+            embed_obj.set_footer(text=creator.display_name + " - Создатель сессии", icon_url=creator.avatar_url)
+
+            await msg.edit(embed=embed_obj)
+            await self._add_activities_emoji(msg, roles_ids)
+        else:
+            await msg.delete()
+
+        async with self.get_connection() as cur:
             await cur.execute(f"DELETE FROM ChannelsINFO WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsActivities WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsINFO WHERE channel_id = {channel.id}")
+
+    async def _add_activities_emoji(self, msg, roles_ids):
+        async with self.get_connection() as cur:
+            for role_id in roles_ids:
+                await cur.execute(f"SELECT application_id FROM CreatedRoles WHERE role_id = {role_id}")
+                app_id, = await cur.fetchone()
+                await cur.execute(f"SELECT emoji_id FROM CreatedEmoji WHERE application_id = {app_id}")
+                emoji_id, = await cur.fetchone()
+                if emoji_id:
+                    emoji = self.bot.get_emoji(emoji_id)
+                    await msg.add_reaction(emoji)
+
 
     async def _transfer_channel(self, user, channel):
         new_leader = channel.members[0]  # New leader of these channel
@@ -471,8 +479,8 @@ class Channels_manager(commands.Cog):
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT channel_id FROM ChannelsINFO WHERE user_id = {user_id}")
             channel_id = await cur.fetchone()
-            if channel_id:
-                return self.bot.get_channel(*channel_id)
+        if channel_id:
+            return self.bot.get_channel(*channel_id)
 
 def setup(bot):
     bot.add_cog(Channels_manager(bot))
