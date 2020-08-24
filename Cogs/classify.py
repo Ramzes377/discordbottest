@@ -362,7 +362,7 @@ class Channels_manager(commands.Cog):
         end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)  # GMT+3
         sess_duration = end_time - start_time
 
-        if sess_duration.seconds > 2:
+        if sess_duration.seconds > 300:
             async with self.get_connection() as cur:
                 await cur.execute(f"UPDATE SessionsID SET past_sessions_counter = {past_sessions_counter + 1} WHERE current_day = {start_day}")
 
