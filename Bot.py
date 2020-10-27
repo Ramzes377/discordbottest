@@ -4,7 +4,9 @@ import aiopg
 
 admin_id = os.environ.get('Admin_ID')
 
-bot = commands.Bot(command_prefix = '!')
+intents = discord.Intents.default()
+intents.members = True 
+bot = commands.Bot(command_prefix = '!', intents=intents)
 
 
 database_URL = os.environ.get('DATABASE_URL')
