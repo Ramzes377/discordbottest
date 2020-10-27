@@ -182,7 +182,7 @@ class Channels_manager(commands.Cog):
             await channel.edit(category=category)
             print('Trying to rename channel but Discord restrictions :(')
 
-      async def _link_gamerole_with_user(self, after):
+    async def _link_gamerole_with_user(self, after):
         app_id, is_real = get_app_id(after)
         role_name = after.activity.name
         guild = after.guild
