@@ -19,7 +19,6 @@ logger_id = int(os.environ.get('Logger_channel_ID'))
 role_request_id = int(os.environ.get('Role_request'))
 
 categories = {discord.ActivityType.playing:   int(os.environ.get('Category_playing')),
-               discord.ActivityType.streaming: int(os.environ.get('Category_steaming')),
                discord.ActivityType.custom:   int(os.environ.get('Category_custom')),
                0:                              int(os.environ.get('Category_idle'))}
 
@@ -183,7 +182,7 @@ class Channels_manager(commands.Cog):
             await channel.edit(category=category)
             print('Trying to rename channel but Discord restrictions :(')
 
-    async def _link_gamerole_with_user(self, after):
+      async def _link_gamerole_with_user(self, after):
         app_id, is_real = get_app_id(after)
         role_name = after.activity.name
         guild = after.guild
@@ -196,13 +195,17 @@ class Channels_manager(commands.Cog):
                     await after.add_roles(role)
             else:
                 color = await self._create_activity_emoji(guild, app_id) if is_real else get_pseudo_random_color()
-                role = await guild.create_role(name=role_name, permissions=guild.default_role.permissions,
-                                               colour=discord.Colour(1).from_rgb(*color), hoist=True, mentionable=True)
-                await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
-                await after.add_roles(role)
+                if color:
+                    role = await guild.create_role(name=role_name, permissions=guild.default_role.permissions,
+                                                   colour=discord.Colour(1).from_rgb(*color), hoist=True, mentionable=True)
+                    await cur.execute(f"INSERT INTO CreatedRoles (application_id, role_id) VALUES ({app_id}, {role.id})")
+                    await after.add_roles(role)
 
     async def _create_activity_emoji(self, guild, app_id):
         async with self.get_connection() as cur:
+            await cur.execute(f'SELECT * FROM CreatedEmoji WHERE application_id = {app_id}')
+            if await cur.fetchone():
+                return
             await cur.execute(f'SELECT name, icon_url FROM ActivitiesINFO WHERE application_id = {app_id}')
             name, thumbnail_url = await cur.fetchone()
             name = re.compile('[^a-zA-Z0-9]').sub('', name)[:32]
