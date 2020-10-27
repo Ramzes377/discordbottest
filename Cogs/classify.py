@@ -310,11 +310,11 @@ class Channels_manager(commands.Cog):
             text_time = time_formatter(dt_time)
             embed_obj = discord.Embed(title=f"{creator.display_name} начал сессию {sess_id}",
                                       color = discord.Color.green())
-            embed_obj.add_field(name = 'Время начала', value = f'{text_time}')
-            embed_obj.description = 'Сессия активна . . .'
+            embed_obj.add_field(name='├ Сессия активна . . .', value='├ ВАЖНО: [[#1]](https://youtu.be/gvTsB7GWpTc), [[#2]](https://youtu.be/Ii8850-G8S0)')
 
+            embed_obj.add_field(name = '├ Время начала', value = '└ ' + f'{text_time}', inline=False)
             creator = channel.guild.get_member(creator.id)
-            embed_obj.set_footer(text=creator.display_name + " - Создатель сессии", icon_url=creator.avatar_url)
+            embed_obj.set_footer(text= creator.display_name + " - Создатель сессии", icon_url=creator.avatar_url)
 
             msg = await self.bot.logger_channel.send(embed = embed_obj)
 
@@ -347,7 +347,7 @@ class Channels_manager(commands.Cog):
         else:  # if channel isn't empty just transfer channel
             await self._transfer_channel(leader, leader_channel)
 
-    async def _end_session_message(self, channel):
+       async def _end_session_message(self, channel):
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT * FROM SessionsINFO WHERE channel_id = {channel.id}")
             session_info = await cur.fetchone()
@@ -356,8 +356,10 @@ class Channels_manager(commands.Cog):
             await cur.execute(f"SELECT past_sessions_counter, current_sessions_counter FROM SessionsID WHERE current_day = {start_day}")
             past_sessions_counter, current_sessions_counter = await cur.fetchone()
             await cur.execute(f"UPDATE SessionsID SET current_sessions_counter = {current_sessions_counter - 1} WHERE current_day = {start_day}")
-
-        msg = await self.bot.logger_channel.fetch_message(message_id)
+        try:
+            msg = await self.bot.logger_channel.fetch_message(message_id)
+        except discord.errors.NotFound:
+            return
         start_time = msg.created_at + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)
         end_time = datetime.datetime.utcnow() + datetime.timedelta(0, 0, 0, 0, 0, 3, 0)  # GMT+3
         sess_duration = end_time - start_time
@@ -375,17 +377,18 @@ class Channels_manager(commands.Cog):
                 roles_ids = set(flatten(associated_roles))
 
             embed_obj = discord.Embed(title=f"Сессия {session_id} окончена!", color=discord.Color.red())
-            embed_obj.add_field(name='Время начала', value=f'{time_formatter(start_time)}')
+            embed_obj.description = '├ ВАЖНО: [[#1]](https://youtu.be/gvTsB7GWpTc), [[#2]](https://youtu.be/Ii8850-G8S0)'
+            embed_obj.add_field(name='├ Время начала', value=f'├ {time_formatter(start_time)}', inline=True)
             embed_obj.add_field(name='Время окончания', value=f'{time_formatter(end_time)}')
-            embed_obj.add_field(name='Продолжительность', value=f"{str(sess_duration).split('.')[0]}", inline=False)
-            embed_obj.add_field(name='Участники', value=', '.join((f'<@{id}>' for id in users_ids)), inline=False)
+            embed_obj.add_field(name='├ Продолжительность', value=f"├ {str(sess_duration).split('.')[0]}", inline=False)
+            embed_obj.add_field(name='├ Участники', value='└ ' + ', '.join((f'<@{id}>' for id in users_ids)), inline=False)
 
             thumbnail_url = msg.embeds[0].thumbnail.url
             if thumbnail_url:
                 embed_obj.set_thumbnail(url=thumbnail_url)
 
-            creator = channel.guild.get_member(creator_id)
-            embed_obj.set_footer(text=creator.display_name + " - Создатель сессии", icon_url=creator.avatar_url)
+            embed_obj.set_footer(text=msg.embeds[0].footer.text, icon_url=msg.embeds[0].footer.icon_url)
+
 
             await msg.edit(embed=embed_obj)
             await self._add_activities_emoji(msg, roles_ids)
@@ -397,6 +400,7 @@ class Channels_manager(commands.Cog):
             await cur.execute(f"DELETE FROM SessionsMembers WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsActivities WHERE channel_id = {channel.id}")
             await cur.execute(f"DELETE FROM SessionsINFO WHERE channel_id = {channel.id}")
+
 
     async def _add_activities_emoji(self, msg, roles_ids):
         async with self.get_connection() as cur:
