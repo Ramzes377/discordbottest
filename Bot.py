@@ -1,10 +1,11 @@
 from discord.ext import commands
 import os
 import aiopg
+from discord import Intents
 
 admin_id = os.environ.get('Admin_ID')
 
-intents = discord.Intents.default()
+intents = Intents.default()
 intents.members = True 
 bot = commands.Bot(command_prefix = '!', intents=intents)
 
