@@ -350,7 +350,7 @@ class Channels_manager(commands.Cog):
         else:  # if channel isn't empty just transfer channel
             await self._transfer_channel(leader, leader_channel)
 
-       async def _end_session_message(self, channel):
+    async def _end_session_message(self, channel):
         async with self.get_connection() as cur:
             await cur.execute(f"SELECT * FROM SessionsINFO WHERE channel_id = {channel.id}")
             session_info = await cur.fetchone()
