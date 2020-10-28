@@ -6,13 +6,14 @@ import aiohttp
 import os
 import numpy as np
 from discord.ext import commands
-from random import randint
+from random import randint, choice
 from sklearn.cluster import KMeans
 from cv2 import cvtColor, COLOR_BGR2RGB, imdecode
 from hashlib import sha3_224
 from asyncio_extras import async_contextmanager
 from itertools import chain
 
+urls = ['https://youtu.be/gvTsB7GWpTc', 'https://youtu.be/Ii8850-G8S0']
 
 create_channel_id = int(os.environ.get('Create_channel_ID'))
 logger_id = int(os.environ.get('Logger_channel_ID'))
@@ -313,7 +314,7 @@ class Channels_manager(commands.Cog):
             text_time = time_formatter(dt_time)
             embed_obj = discord.Embed(title=f"{creator.display_name} начал сессию {sess_id}",
                                       color = discord.Color.green())
-            embed_obj.add_field(name='├ Сессия активна . . .', value='├ ВАЖНО: [[#1]](https://youtu.be/gvTsB7GWpTc), [[#2]](https://youtu.be/Ii8850-G8S0)')
+            embed_obj.add_field(name='├ Сессия активна . . .', value=f'├ [ВАЖНО!]({choice(urls)})')
 
             embed_obj.add_field(name = '├ Время начала', value = '└ ' + f'{text_time}', inline=False)
             creator = channel.guild.get_member(creator.id)
@@ -380,7 +381,7 @@ class Channels_manager(commands.Cog):
                 roles_ids = set(flatten(associated_roles))
 
             embed_obj = discord.Embed(title=f"Сессия {session_id} окончена!", color=discord.Color.red())
-            embed_obj.description = '├ ВАЖНО: [[#1]](https://youtu.be/gvTsB7GWpTc), [[#2]](https://youtu.be/Ii8850-G8S0)'
+            embed_obj.description = f'├ [ВАЖНО!]({choice(urls)})'
             embed_obj.add_field(name='├ Время начала', value=f'├ {time_formatter(start_time)}', inline=True)
             embed_obj.add_field(name='Время окончания', value=f'{time_formatter(end_time)}')
             embed_obj.add_field(name='├ Продолжительность', value=f"├ {str(sess_duration).split('.')[0]}", inline=False)
