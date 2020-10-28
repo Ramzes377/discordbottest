@@ -5,8 +5,7 @@ from discord import Intents
 
 admin_id = os.environ.get('Admin_ID')
 
-intents = Intents.default()
-intents.members = True 
+intents = Intents().all()
 bot = commands.Bot(command_prefix = '!', intents=intents)
 
 
